@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Messages</h1>
+<div class="two-col">
+<section class="card">
+  <h2>Inbox</h2>
+  {% for m in inbox %}
+    <details class="item"><summary><b>{{ m.subject }}</b> <small class="muted">from {{ m.other }} ({{ m.other_username }}) · {{ m.created_at }}</small></summary>{{ m.body | md }}</details>
+  {% else %}<p class="muted">Inbox is empty.</p>{% endfor %}
+  <h2>Sent</h2>
+  {% for m in sent %}
+    <details class="item"><summary><b>{{ m.subject }}</b> <small class="muted">to {{ m.other }} ({{ m.other_username }}) · {{ m.created_at }}</small></summary>{{ m.body | md }}</details>
+  {% else %}<p class="muted">Nothing sent.</p>{% endfor %}
+</section>
+<section class="card">
+  <h2>New message</h2>
+  <form method="post" class="inline-form">
+    <input name="to" placeholder="Recipient username" required>
+    <input name="subject" placeholder="Subject" required>
+    <textarea name="body" rows="6" placeholder="Message (Markdown supported)" required></textarea>
+    <button>Send</button>
+  </form>
+</section>
+</div>
+{% endblock %}

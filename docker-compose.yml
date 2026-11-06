@@ -1,0 +1,17 @@
+services:
+  eclass:
+    build: .
+    container_name: athena-eclass
+    ports:
+      - "8080:8080"
+    env_file: .env
+    environment:
+      DB_PATH: /data/eclass.db
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      RESET_DB: ${RESET_DB:-true}          # re-seed the DB on every start
+      SHOW_TOOL_CALLS: ${SHOW_TOOL_CALLS:-false}   # true = show live logs & tool calls in the chat
+      SECRET_KEY: ${SECRET_KEY:-change-me-hackathon}
+    volumes:
+      # Live-edit the code and the system prompt without rebuilding (gunicorn --reload).
+      - ./app:/srv/app
+      - ./system.md:/srv/system.md

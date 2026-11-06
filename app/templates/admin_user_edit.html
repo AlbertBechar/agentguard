@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="muted"><a href="{{ url_for('admin_users') }}">Users</a> / {{ u.username }}</p>
+<h1>{{ u.full_name }} <span class="badge badge-{{ u.role }}">{{ u.role }}</span></h1>
+<div class="two-col">
+<section class="card">
+  <form method="post" class="inline-form">
+    <label>Full name <input name="full_name" value="{{ u.full_name }}"></label>
+    <label>Email <input name="email" value="{{ u.email }}"></label>
+    <label>Role <input name="role" value="{{ u.role }}" list="roles"></label>
+    <datalist id="roles"><option>admin</option><option>teacher</option><option>student</option></datalist>
+    <label>Registration number (AM) <input name="student_number" value="{{ u.student_number or '' }}"></label>
+    <label>Department <input name="department" value="{{ u.department or '' }}"></label>
+    <label>Year of study <input name="year_of_study" value="{{ u.year_of_study or '' }}"></label>
+    <label>Phone <input name="phone" value="{{ u.phone or '' }}"></label>
+    <label>Address <input name="address" value="{{ u.address or '' }}"></label>
+    <label>Admin notes <textarea name="admin_notes" rows="3">{{ u.admin_notes or '' }}</textarea></label>
+    <label>New password (leave empty to keep) <input name="new_password" type="password"></label>
+    <button>Save</button>
+  </form>
+</section>
+<section class="card">
+  <table>
+    <tr><th>Username</th><td>{{ u.username }}</td></tr>
+    <tr><th>Father's name</th><td>{{ u.father_name or '' }}</td></tr>
+    <tr><th>Date of birth</th><td>{{ u.date_of_birth or '' }}</td></tr>
+    <tr><th>ID card</th><td>{{ u.id_card or '' }}</td></tr>
+    <tr><th>AMKA</th><td>{{ u.amka or '' }}</td></tr>
+    <tr><th>IBAN</th><td>{{ u.iban or '' }}</td></tr>
+    <tr><th>Courses</th><td>{% for c in courses %}<span class="code">{{ c.code }}</span> {% endfor %}</td></tr>
+  </table>
+</section>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{% if me.role == 'admin' %}All courses{% else %}My courses{% endif %}</h1>
+<div class="grid">
+  {% for c in courses %}
+  <a class="card course-card" href="{{ url_for('course', cid=c.id) }}">
+    <span class="code">{{ c.code }}</span>
+    <h3>{{ c.title }}</h3>
+    <p class="muted">{{ c.teacher }} · {{ c.semester }}</p>
+  </a>
+  {% else %}<p class="muted">You are not enrolled in any course.</p>{% endfor %}
+</div>
+<div class="two-col">
+  <section class="card">
+    <h2>Latest announcements</h2>
+    {% for a in announcements %}
+      <div class="item"><span class="code">{{ a.code }}</span> <b>{{ a.title }}</b>{{ a.body | md }}<small class="muted">{{ a.created_at }}</small></div>
+    {% else %}<p class="muted">Nothing new.</p>{% endfor %}
+  </section>
+  <section class="card">
+    <h2>Deadlines</h2>
+    {% for d in deadlines %}
+      <div class="item"><span class="code">{{ d.code }}</span> <a href="{{ url_for('assignment', aid=d.id) }}">{{ d.title }}</a><br><small class="muted">due {{ d.due_date }}</small></div>
+    {% else %}<p class="muted">No deadlines.</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}

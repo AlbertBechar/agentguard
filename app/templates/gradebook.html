@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="muted"><a href="{{ url_for('course', cid=c.id) }}">{{ c.code }}</a> / gradebook</p>
+<h1>Gradebook: {{ c.title }}</h1>
+<p class="muted">Edit any grade and choose which columns are published (visible to students). Unpublished = hidden.</p>
+<form method="post">
+<section class="card scroll">
+<table class="gradebook">
+  <tr><th>Student</th><th>AM</th>
+    {% for comp in comps %}<th>{{ comp.name }} ({{ comp.weight|int }}%)<br>
+      <label class="check"><input type="checkbox" name="pub_{{ comp.id }}" {% if comp.published %}checked{% endif %}> published</label></th>{% endfor %}
+    <th>Final grade<br><label class="check"><input type="checkbox" name="pub_final" {% if final_pub %}checked{% endif %}> published</label></th></tr>
+  {% for st in students %}
+  <tr><td>{{ st.full_name }}<br><small class="muted">{{ st.username }}</small></td><td><small>{{ st.student_number }}</small></td>
+    {% for comp in comps %}{% set v = cells.get((comp.id, st.id)) %}
+    <td><input name="g_{{ comp.id }}_{{ st.id }}" type="number" step="0.5" min="0" max="10" value="{{ v if v is not none else '' }}"></td>{% endfor %}
+    {% set f = finals.get(st.id) %}
+    <td><input name="final_{{ st.id }}" type="number" step="0.5" min="0" max="10" value="{{ f.grade if f else '' }}"></td></tr>
+  {% endfor %}
+</table>
+</section>
+<button>Save gradebook</button>
+</form>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="muted"><a href="{{ url_for('dashboard') }}">My courses</a> / {{ c.code }}</p>
+<h1><span class="code big">{{ c.code }}</span> {{ c.title }}</h1>
+{{ c.description | md }}
+<p class="muted">Instructor: {{ c.teacher }} · {{ c.semester }}{% if can_manage(c) %} · Enrollment key: <code>{{ c.enrollment_key }}</code> · <a href="{{ url_for('gradebook', cid=c.id) }}">Gradebook</a>{% endif %}</p>
+
+<div class="two-col">
+<section class="card">
+  <h2>Course materials</h2>
+  {% for m in materials %}
+    <details class="item"><summary><b>{{ m.title }}</b>{% if not m.visible %} <span class="badge">hidden</span>{% endif %}</summary>{{ m.body | md }}</details>
+  {% else %}<p class="muted">No materials yet.</p>{% endfor %}
+  {% if can_manage(c) %}
+  <form method="post" action="{{ url_for('add_material', cid=c.id) }}" class="inline-form">
+    <h3>Add material</h3>
+    <input name="title" placeholder="Title" required>
+    <textarea name="body" rows="3" placeholder="Content (Markdown supported)" required></textarea>
+    <label class="check"><input type="checkbox" name="visible" checked> Visible to students</label>
+    <button>Add</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Announcements</h2>
+  {% for a in announcements %}
+    <div class="item"><b>{{ a.title }}</b>{{ a.body | md }}<small class="muted">{{ a.created_at }}</small></div>
+  {% else %}<p class="muted">No announcements.</p>{% endfor %}
+  {% if can_manage(c) %}
+  <form method="post" action="{{ url_for('add_announcement', cid=c.id) }}" class="inline-form">
+    <h3>New announcement</h3>
+    <input name="title" placeholder="Title" required>
+    <textarea name="body" rows="2" placeholder="Text (Markdown supported)" required></textarea>
+    <button>Post</button>
+  </form>
+  {% endif %}
+  <h2>Exercises / quizzes</h2>
+  {% for e in exercises %}
+    <div class="item"><a href="{{ url_for('exercise', eid=e.id) }}">{{ e.title }}</a>{% if not e.is_open %} <span class="badge">closed</span>{% endif %}<br><small class="muted">due {{ e.due_date }}</small></div>
+  {% else %}<p class="muted">No exercises.</p>{% endfor %}
+  <h2>Assignments</h2>
+  {% for a in assignments %}
+    <div class="item"><a href="{{ url_for('assignment', aid=a.id) }}">{{ a.title }}</a><br><small class="muted">due {{ a.due_date }}</small></div>
+  {% else %}<p class="muted">No assignments.</p>{% endfor %}
+</section>
+</div>
+
+<section class="card" id="forum">
+  <h2>Forum</h2>
+  {% for p in posts %}
+    <div class="item"><b>{{ p.title }}</b> <small class="muted">by {{ p.author }} · {{ p.created_at }}</small>{{ p.body | md }}</div>
+  {% else %}<p class="muted">No posts yet.</p>{% endfor %}
+  <form method="post" action="{{ url_for('add_post', cid=c.id) }}" class="inline-form">
+    <h3>New post</h3>
+    <input name="title" placeholder="Title" required>
+    <textarea name="body" rows="3" placeholder="Write something… (Markdown supported)" required></textarea>
+    <button>Post</button>
+  </form>
+</section>
+
+{% if students %}
+<section class="card">
+  <h2>Enrolled students ({{ students|length }})</h2>
+  <p>{% for s in students %}<span class="chip">{{ s.full_name }} <small>{{ s.student_number }}</small></span>{% endfor %}</p>
+</section>
+{% endif %}
+{% endblock %}

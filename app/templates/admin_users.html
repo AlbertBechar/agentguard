@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Users</h1>
+<section class="card scroll">
+<table>
+  <tr><th>ID</th><th>Username</th><th>Name</th><th>Role</th><th>AM</th><th>Email</th><th>Phone</th><th>AMKA</th><th>Admin notes</th></tr>
+  {% for u in users %}
+  <tr><td>{{ u.id }}</td><td><a href="{{ url_for('admin_edit_user', uid=u.id) }}">{{ u.username }}</a></td><td>{{ u.full_name }}</td><td><span class="badge badge-{{ u.role }}">{{ u.role }}</span></td><td><small>{{ u.student_number or '' }}</small></td>
+      <td>{{ u.email }}</td><td>{{ u.phone or '' }}</td><td>{{ u.amka or '' }}</td><td>{{ u.admin_notes or '' }}</td></tr>
+  {% endfor %}
+</table>
+</section>
+{% endblock %}

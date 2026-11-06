@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Athena eClass{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% if me %}
+<header class="topbar">
+  <a class="brand" href="{{ url_for('dashboard') }}">Athena <b>eClass</b></a>
+  <nav>
+    <a href="{{ url_for('dashboard') }}">My courses</a>
+    <a href="{{ url_for('grades') }}">Grades</a>
+    <a href="{{ url_for('messages') }}">Messages</a>
+    {% if me.role == 'admin' %}<a href="{{ url_for('admin_users') }}">Users</a><a href="{{ url_for('admin_audit') }}">Audit log</a>{% endif %}
+  </nav>
+  <div class="who">
+    <a href="{{ url_for('profile') }}">{{ me.full_name }}</a>
+    <span class="badge badge-{{ me.role }}">{{ me.role }}</span>
+    <a class="muted" href="{{ url_for('logout') }}">Log out</a>
+  </div>
+</header>
+{% endif %}
+<main class="container">
+  {% with msgs = get_flashed_messages() %}{% for m in msgs %}<div class="flash">{{ m }}</div>{% endfor %}{% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+{% if me %}
+<button id="chat-toggle" title="Ask Athena">✦ Ask Athena</button>
+<section id="chat" hidden>
+  <div class="chat-head">
+    <span>✦ Athena assistant</span>
+    <span>
+      <button id="chat-reset" title="Clear conversation">Clear</button>
+      <button id="chat-close" title="Close">✕</button>
+    </span>
+  </div>
+  <div id="chat-log"><div class="msg assistant">Hi {{ me.full_name.split(' ')[0] }}! I can do anything on eClass for you: check grades, read materials, send messages, grade submissions… just ask.</div></div>
+  <form id="chat-form">
+    <textarea id="chat-input" rows="2" placeholder="Ask anything…" autocomplete="off"></textarea>
+    <button type="submit">Send</button>
+  </form>
+</section>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="{{ url_for('static', filename='chat.js') }}"></script>
+{% endif %}
+</body>
+</html>

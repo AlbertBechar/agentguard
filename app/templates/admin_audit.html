@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Audit log</h1>
+<p class="muted">Every web action and every chatbot tool call (last 300).</p>
+<section class="card scroll">
+<table>
+  <tr><th>Time</th><th>User</th><th>Via</th><th>Action</th><th>Details</th></tr>
+  {% for e in log %}
+  <tr class="{{ 'bot' if e.via == 'chatbot' }}"><td><small>{{ e.created_at }}</small></td><td>{{ e.username or e.actor_id }}</td><td>{{ e.via }}</td><td><code>{{ e.action }}</code></td><td><small class="pre">{{ e.details }}</small></td></tr>
+  {% endfor %}
+</table>
+</section>
+{% endblock %}

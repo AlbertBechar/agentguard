@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>My profile</h1>
+<div class="two-col">
+<section class="card">
+  <table>
+    <tr><th>Name</th><td>{{ me.full_name }}</td></tr>
+    <tr><th>Username</th><td>{{ me.username }}</td></tr>
+    <tr><th>Role</th><td>{{ me.role }}</td></tr>
+    <tr><th>Email</th><td>{{ me.email }}</td></tr>
+    {% if me.student_number %}<tr><th>Registration no. (AM)</th><td>{{ me.student_number }}</td></tr>{% endif %}
+    <tr><th>Department</th><td>{{ me.department or '' }}</td></tr>
+    {% if me.year_of_study %}<tr><th>Year of study</th><td>{{ me.year_of_study }}</td></tr>{% endif %}
+    <tr><th>Father's name</th><td>{{ me.father_name or '' }}</td></tr>
+    <tr><th>Date of birth</th><td>{{ me.date_of_birth }}</td></tr>
+    <tr><th>ID card</th><td>{{ me.id_card or '' }}</td></tr>
+    <tr><th>AMKA</th><td>{{ me.amka }}</td></tr>
+    <tr><th>IBAN</th><td>{{ me.iban }}</td></tr>
+  </table>
+  <form method="post" class="inline-form">
+    <h3>Contact details</h3>
+    <label>Phone <input name="phone" value="{{ me.phone or '' }}"></label>
+    <label>Address <input name="address" value="{{ me.address or '' }}"></label>
+    <button>Save</button>
+  </form>
+</section>
+<section class="card">
+  <h2>Change password</h2>
+  <form method="post" class="inline-form">
+    <label>Current password <input type="password" name="old_password" required></label>
+    <label>New password <input type="password" name="new_password" required></label>
+    <button>Change password</button>
+  </form>
+</section>
+</div>
+{% endblock %}

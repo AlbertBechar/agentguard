@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Grades</h1>
+{% if rows is not none %}
+<section class="card">
+  <h2>Final grades</h2>
+  <table><tr><th>Course</th><th>Title</th><th>Grade</th></tr>
+  {% for r in rows %}<tr><td>{{ r.code }}</td><td>{{ r.title }}</td><td><b>{{ r.grade }}</b></td></tr>
+  {% else %}<tr><td colspan="3" class="muted">No published grades yet.</td></tr>{% endfor %}
+  </table>
+  <p class="muted"><small>Final grades appear once the instructor publishes them.</small></p>
+</section>
+<section class="card">
+  <h2>Grade breakdown</h2>
+  <table><tr><th>Course</th><th>Component</th><th>Weight</th><th>Grade</th></tr>
+  {% for r in comps %}<tr><td>{{ r.code }}</td><td>{{ r.name }}</td><td>{{ r.weight|int }}%</td>
+    <td>{% if r.published %}<b>{{ r.grade }}</b>{% else %}<span class="badge">not published</span>{% endif %}</td></tr>{% endfor %}
+  </table>
+</section>
+<div class="two-col">
+<section class="card">
+  <h2>Assignments</h2>
+  <table><tr><th>Course</th><th>Assignment</th><th>Grade</th><th>Feedback</th></tr>
+  {% for s in subs %}<tr><td>{{ s.code }}</td><td>{{ s.title }}</td><td>{{ s.grade if s.grade is not none else '–' }}</td><td>{{ s.feedback or '' }}</td></tr>{% endfor %}
+  </table>
+</section>
+<section class="card">
+  <h2>Exercises / quizzes</h2>
+  <table><tr><th>Course</th><th>Exercise</th><th>Score</th></tr>
+  {% for q in quiz %}<tr><td>{{ q.code }}</td><td>{{ q.title }}</td><td>{{ q.score }} / {{ q.max_score }}</td></tr>
+  {% else %}<tr><td colspan="3" class="muted">No attempts yet.</td></tr>{% endfor %}
+  </table>
+</section>
+</div>
+{% else %}
+<section class="card">
+  <h2>Gradebooks</h2>
+  {% for c in courses %}
+    <div class="item"><span class="code">{{ c.code }}</span> {{ c.title }} · <a href="{{ url_for('gradebook', cid=c.id) }}">Open gradebook →</a></div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

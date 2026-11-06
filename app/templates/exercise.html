@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="muted"><a href="{{ url_for('course', cid=c.id) }}">{{ c.code }}</a> / exercises</p>
+<h1>{{ ex.title }} {% if not ex.is_open %}<span class="badge">closed</span>{% endif %}</h1>
+{{ ex.description | md }}
+<p class="muted">Due {{ ex.due_date }}</p>
+
+{% if attempts is not none %}
+<section class="card">
+  <h2>Questions &amp; answer key</h2>
+  {% for q in qs %}
+  <div class="item"><b>{{ q.position }}. {{ q.question }}</b> <small class="muted">({{ q.points }} pt)</small>
+    {% if q.options %}<ul>{% for o in q.options %}<li>{% if o == q.correct_answer %}<b>✓ {{ o }}</b>{% else %}{{ o }}{% endif %}</li>{% endfor %}</ul>
+    {% else %}<p>Answer: <b>{{ q.correct_answer }}</b></p>{% endif %}
+    {% if q.explanation %}<p class="muted">{{ q.explanation }}</p>{% endif %}
+  </div>
+  {% endfor %}
+</section>
+<section class="card scroll">
+  <h2>Student attempts ({{ attempts|length }})</h2>
+  <table><tr><th>Student</th><th>Score</th>{% for q in qs %}<th>Q{{ q.position }}</th>{% endfor %}<th>Submitted</th></tr>
+  {% for a in attempts %}
+  <tr><td>{{ a.full_name }}<br><small class="muted">{{ a.username }}</small></td><td><b>{{ a.score }}</b> / {{ a.max_score }}</td>
+    {% for q in qs %}{% set ans = a.answers.get(q.id|string, '') %}<td><small>{{ ans }}</small></td>{% endfor %}
+    <td><small>{{ a.submitted_at }}</small></td></tr>
+  {% else %}<tr><td colspan="9" class="muted">No attempts yet.</td></tr>{% endfor %}
+  </table>
+</section>
+{% else %}
+<section class="card">
+  {% if mine %}
+    <h2>Your result: {{ mine.score }} / {{ mine.max_score }}</h2>
+    {% for q in qs %}<div class="item"><b>{{ q.position }}. {{ q.question }}</b><p>Your answer: {{ mine.answers.get(q.id|string, '') }}</p></div>{% endfor %}
+    <p class="muted">Correct answers are not shown.</p>
+  {% else %}
+  <form method="post" action="{{ url_for('attempt_exercise', eid=ex.id) }}" class="inline-form">
+    {% for q in qs %}
+    <div class="item"><b>{{ q.position }}. {{ q.question }}</b> <small class="muted">({{ q.points }} pt)</small>
+      {% if q.options %}{% for o in q.options %}<label class="check"><input type="radio" name="q_{{ q.id }}" value="{{ o }}" required> {{ o }}</label>{% endfor %}
+      {% else %}<input name="q_{{ q.id }}" placeholder="Your answer" required>{% endif %}
+    </div>
+    {% endfor %}
+    <button>Submit (one attempt)</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}
