@@ -2,6 +2,7 @@
 import json
 from datetime import datetime, timezone
 
+from . import honeytoken
 from .db import execute, query
 from .guard_types import TurnContext
 
@@ -26,7 +27,11 @@ def _ensure_tables():
         user_id INTEGER PRIMARY KEY,
         tainted_at TEXT
     )""")
-
+    execute("""CREATE TABLE IF NOT EXISTS guard_lock (
+    user_id INTEGER PRIMARY KEY,
+    locked_at TEXT,
+    reason TEXT
+)""")
 
 def _now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -69,12 +74,31 @@ def _clear_taint(user_id):
 Οι _is_tainted, _set_tainted και _clear_taint διαβάζουν, βάζουν και σβήνουν το σημάδι ανά χρήστη. Τα ? στο SQL κάνουν τη βάση να βάλει τις τιμές με ασφάλεια, και αυτό προστατεύει από SQL injection.
 """
 
+# --------------------------------------------------------------------------- κλείδωμα (honeytoken)
+
+def _lock(user_id, reason):
+    """Κλειδώνει τη συνομιλία: κανένα εργαλείο δεν εκτελείται μέχρι το Clear."""
+    _ensure_tables()
+    execute("INSERT OR IGNORE INTO guard_lock (user_id, locked_at, reason) VALUES (?, ?, ?)",
+            (user_id, _now(), reason))
+
+
+def _is_locked(user_id):
+    _ensure_tables()
+    return query("SELECT 1 FROM guard_lock WHERE user_id = ?", (user_id,), one=True) is not None
+
+
+def _unlock(user_id):
+    _ensure_tables()
+    execute("DELETE FROM guard_lock WHERE user_id = ?", (user_id,))
 # --------------------------------------------------------------------------- ο Guard
 
 APPROVAL_MESSAGE = ("A human must approve this in the Guard page (/guard). "
                     "Tell the user. Do not retry or find another way.")
 APPROVAL_REASON = "high-risk action after untrusted content was read"
 
+HONEYTOKEN_REASON = "honeytoken data in tool arguments (likely data theft); conversation locked"
+LOCKED_REASON = "conversation locked after a honeytoken alert; press Clear to start over"
 
 class Guard:
     """Αποφασίζει για κάθε κλήση εργαλείου: μπλόκο, έγκριση από άνθρωπο ή εκτέλεση."""
@@ -93,6 +117,7 @@ class Guard:
 
     def clear_taint(self, user_id):
         _clear_taint(user_id)
+        _unlock(user_id)
 
     def _log(self, ctx, user, name, args, action, reason="", rule="", score=0.0):
         ctx.events.append({"tool": name, "action": action, "reason": reason, "rule": rule})
@@ -102,6 +127,18 @@ class Guard:
     def run_tool(self, ctx, call_tool_fn, user, name, args):
         args = args or {}
         try:
+            # 0α. Η συνομιλία έχει κλειδώσει από προηγούμενο συναγερμό; Τότε τίποτα δεν περνάει.
+            if _is_locked(user["id"]):
+                self._log(ctx, user, name, args, "deny", LOCKED_REASON, "honeytoken.locked")
+                return {"error": f"blocked by guard: {LOCKED_REASON}"}
+
+            # 0β. Honeytoken: τα ψεύτικα ευαίσθητα δεδομένα βρίσκονται μέσα στα ορίσματα;
+            if honeytoken.found_in(args):
+                _lock(user["id"], HONEYTOKEN_REASON)
+                self._log(ctx, user, name, args, "deny", HONEYTOKEN_REASON, "honeytoken")
+                honeytoken.alert_admin(user, name)
+                return {"error": f"blocked by guard: {HONEYTOKEN_REASON}"}
+            
             # 1. Επιτρέπεται αυτή η ενέργεια σε αυτόν τον χρήστη;
             d = self.policy.check(user, name, args, ctx)
             if d.action != "allow":  # fail-closed: ό,τι δεν είναι ρητά "allow" μπλοκάρεται
@@ -150,6 +187,10 @@ def get_guard():
         # όσο τα αρχεία των άλλων δεν έχουν φτάσει ακόμα.
         from . import approvals, eclass_policy, sanitize
         _GUARD = Guard(eclass_policy, sanitize, approvals)
+        try:
+            honeytoken.plant()
+        except Exception as e:  # χωρίς παγίδα ο Guard δουλεύει κανονικά· απλώς το λέμε
+            print(f"[guard] honeytoken not planted: {e}", flush=True)
     return _GUARD
 
 """
