@@ -405,7 +405,7 @@ class PackagingTests(unittest.TestCase):
     def test_library_has_no_print_or_input_calls(self):
         import ast
         for path in sorted((ROOT / "copilot").glob("*.py")):
-            if path.name in ("cli.py", "__main__.py"):
+            if path.name in ("cli.py", "__main__.py", "evaluate.py"):   # εκτελέσιμα scripts, όχι βιβλιοθήκη
                 continue
             called = {n.func.id for n in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
                       if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
