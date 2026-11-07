@@ -174,5 +174,50 @@ class TestPolicy(unittest.TestCase):
         })
         self.assertEqual(res.action, "deny")
 
+class TestGoldenMaster(unittest.TestCase):
+    """Ο νέος eclass_policy (JSON + engine) πρέπει να κάνει ΑΚΡΙΒΩΣ ό,τι έκανε ο παλιός (tag pre-engine).
+
+    Το baseline (tests/policy_baseline.json) καταγράφηκε από τον παλιό κώδικα. Το τεστ τρέχει σε
+    ΦΡΕΣΚΙΑ seeded βάση (προσωρινό αρχείο), άρα δεν επηρεάζεται από ό,τι άλλαξαν άλλα τεστ στο test.db.
+    """
+
+    def test_matches_legacy_baseline(self):
+        try:
+            from tests.test_policy_engine import BASELINE_PATH, build_records, fresh_seeded_db
+        except ImportError:  # τρέξιμο με `python tests/test_policy.py`
+            from test_policy_engine import BASELINE_PATH, build_records, fresh_seeded_db
+        import json
+        import app.eclass_policy as new_policy
+
+        with open(BASELINE_PATH, "r", encoding="utf-8") as f:
+            baseline = json.load(f)["records"]
+        with fresh_seeded_db() as users:
+            fresh = build_records(new_policy, users)
+
+        def key(r):
+            return (r["user"], r["tool"], json.dumps(r["args"], sort_keys=True, ensure_ascii=False))
+
+        self.assertEqual(len(baseline), len(fresh), "διαφορετικό πλήθος εγγραφών")
+        diffs = []
+        redact_compared = 0
+        # Σύγκριση ανά θέση (η σειρά είναι ντετερμινιστική· μερικές παραλλαγές επαναλαμβάνονται σκόπιμα)
+        for old, new in zip(baseline, fresh):
+            if key(old) != key(new):
+                diffs.append(f"ΑΣΥΝΤΑΞΙΑ εγγραφών: {key(old)} != {key(new)}")
+                continue
+            if old["check"] != new["check"]:
+                diffs.append(f"CHECK user={old['user']} tool={old['tool']} args={old['args']}\n"
+                             f"    παλιό: {old['check']}\n    νέο:   {new['check']}")
+            if "redact_sha256" in old:
+                redact_compared += 1
+                if old["redact_sha256"] != new.get("redact_sha256"):
+                    diffs.append(f"REDACT user={old['user']} tool={old['tool']} args={old['args']}\n"
+                                 f"    παλιό digest: {old['redact_sha256'][:16]}...\n"
+                                 f"    νέο digest:   {str(new.get('redact_sha256'))[:16]}...")
+        self.assertGreater(redact_compared, 200)  # φρουρός: το baseline πράγματι περιέχει redaction
+        self.assertEqual(diffs, [], f"{len(diffs)} διαφορές από το baseline:\n" + "\n".join(diffs[:15]))
+        print(f"\n[golden master] {len(baseline)} εγγραφές check, {redact_compared} με redact: όλες ίδιες")
+
+
 if __name__ == "__main__":
     unittest.main()

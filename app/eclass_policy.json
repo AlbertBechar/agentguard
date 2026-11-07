@@ -1,0 +1,1417 @@
+{
+  "schema": "agentguard-policy/1",
+  "app": "athena-eclass",
+  "default_action": "deny",
+  "meta": {
+    "generated_by": "A-engine (hand-written from the legacy eclass_policy.py, verified by the golden master)",
+    "context_attributes": {
+      "user_ref_id": "id of the user referenced by args.user_ref (None if missing or not found)",
+      "student_ref_id": "id of the user referenced by args.student_ref, only when student_ref is given",
+      "effective_student_id": "id of args.student_ref, or of the current user when student_ref is not given",
+      "effective_user_id": "id of args.user_ref, or of the current user when user_ref is not given",
+      "effective_sender_id": "id of args.from_user, or of the current user when from_user is not given",
+      "course_id": "id of the course referenced by args.course_ref (None if missing or not found)",
+      "is_course_teacher": "true if the current user teaches the course args.course_ref",
+      "is_enrolled": "true if the current user is enrolled in the course args.course_ref",
+      "assignment_course_id": "course of the assignment args.assignment_id (None if not found)",
+      "is_assignment_course_teacher": "true if the current user teaches the course of that assignment",
+      "is_assignment_course_enrolled": "true if the current user is enrolled in the course of that assignment",
+      "submission_course_id": "course of the submission args.submission_id (None if not found)",
+      "is_submission_course_teacher": "true if the current user teaches the course of that submission",
+      "exercise_course_id": "course of the exercise args.exercise_id (None if missing or not found)",
+      "is_exercise_course_teacher": "true if the current user teaches the course of that exercise",
+      "is_exercise_course_enrolled": "true if the current user is enrolled in the course of that exercise",
+      "exercise_is_open": "true if the exercise args.exercise_id accepts attempts",
+      "enrolled_course_ids": "list of the course ids the current user is enrolled in"
+    }
+  },
+  "roles": [
+    "student",
+    "teacher",
+    "admin"
+  ],
+  "untrusted_tools": [
+    "fetch_url",
+    "get_course",
+    "get_exercise",
+    "get_exercise_attempts",
+    "get_submissions",
+    "list_assignments",
+    "read_forum",
+    "read_messages"
+  ],
+  "high_risk_tools": [
+    "add_material",
+    "create_user",
+    "delete_user",
+    "enroll_user",
+    "grade_submission",
+    "post_announcement",
+    "publish_grades",
+    "reset_password",
+    "send_message",
+    "set_component_grade",
+    "set_final_grade",
+    "update_user"
+  ],
+  "rules": [
+    {
+      "id": "power_tools.deny_all",
+      "tools": [
+        "run_sql",
+        "fetch_url"
+      ],
+      "roles": [
+        "*"
+      ],
+      "effect": "deny",
+      "reason": "run_sql and fetch_url are forbidden via chatbot"
+    },
+    {
+      "id": "users.list.admin_only",
+      "tools": [
+        "list_users"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "reason": "Only admin can list all users"
+    },
+    {
+      "id": "users.list.allow_admin",
+      "tools": [
+        "list_users"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "users.get.not_found",
+      "tools": [
+        "get_user"
+      ],
+      "roles": [
+        "*"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.user_ref_id",
+          "op": "not_exists"
+        }
+      ],
+      "reason": "User not found"
+    },
+    {
+      "id": "users.get.self_only",
+      "tools": [
+        "get_user"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.user_ref_id",
+          "op": "not_equals",
+          "right": "$user.id"
+        }
+      ],
+      "reason": "Students can only view their own profile"
+    },
+    {
+      "id": "users.get.allow_staff",
+      "tools": [
+        "get_user"
+      ],
+      "roles": [
+        "teacher",
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "users.get.allow_self",
+      "tools": [
+        "get_user"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "allow",
+      "when": [
+        {
+          "left": "$ctx.user_ref_id",
+          "op": "equals",
+          "right": "$user.id"
+        }
+      ]
+    },
+    {
+      "id": "users.update.not_found",
+      "tools": [
+        "update_user"
+      ],
+      "roles": [
+        "*"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.user_ref_id",
+          "op": "not_exists"
+        }
+      ],
+      "reason": "User not found"
+    },
+    {
+      "id": "users.update.self_only",
+      "tools": [
+        "update_user"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.user_ref_id",
+          "op": "not_equals",
+          "right": "$user.id"
+        }
+      ],
+      "reason": "Cannot update other users"
+    },
+    {
+      "id": "users.update.restricted_fields",
+      "tools": [
+        "update_user"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$args.role",
+                "op": "exists"
+              }
+            ],
+            [
+              {
+                "left": "$args.admin_notes",
+                "op": "exists"
+              }
+            ],
+            [
+              {
+                "left": "$args.iban",
+                "op": "exists"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Cannot modify restricted fields"
+    },
+    {
+      "id": "users.update.allow_admin",
+      "tools": [
+        "update_user"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "users.update.allow_self",
+      "tools": [
+        "update_user"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "allow",
+      "when": [
+        {
+          "left": "$ctx.user_ref_id",
+          "op": "equals",
+          "right": "$user.id"
+        }
+      ]
+    },
+    {
+      "id": "users.reset_pw.admin_only",
+      "tools": [
+        "reset_password"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "reason": "Password reset via chatbot is admin-only"
+    },
+    {
+      "id": "users.reset_pw.allow_admin",
+      "tools": [
+        "reset_password"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "users.manage.admin_only",
+      "tools": [
+        "create_user",
+        "delete_user"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "reason": "Only admin can create or delete users"
+    },
+    {
+      "id": "users.manage.allow_admin",
+      "tools": [
+        "create_user",
+        "delete_user"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "courses.enroll.admin_only",
+      "tools": [
+        "enroll_user"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "reason": "Only admin can enroll users"
+    },
+    {
+      "id": "courses.enroll.allow_admin",
+      "tools": [
+        "enroll_user"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "courses.list.allow",
+      "tools": [
+        "list_courses"
+      ],
+      "roles": [
+        "student",
+        "teacher",
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "courses.not_found",
+      "tools": [
+        "get_course",
+        "read_forum",
+        "post_forum",
+        "list_assignments",
+        "list_exercises",
+        "add_material",
+        "post_announcement"
+      ],
+      "roles": [
+        "*"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.course_id",
+          "op": "not_exists"
+        }
+      ],
+      "reason": "Course not found"
+    },
+    {
+      "id": "courses.access_denied",
+      "tools": [
+        "get_course",
+        "read_forum",
+        "post_forum",
+        "list_assignments",
+        "list_exercises"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "teacher"
+              },
+              {
+                "left": "$ctx.is_course_teacher",
+                "op": "is_false"
+              }
+            ],
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "student"
+              },
+              {
+                "left": "$ctx.is_enrolled",
+                "op": "is_false"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Access denied: not enrolled or teaching this course"
+    },
+    {
+      "id": "courses.teacher_only",
+      "tools": [
+        "add_material",
+        "post_announcement"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "student"
+              }
+            ],
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "teacher"
+              },
+              {
+                "left": "$ctx.is_course_teacher",
+                "op": "is_false"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Only course teachers or admin can add materials/announcements"
+    },
+    {
+      "id": "courses.read.allow_admin",
+      "tools": [
+        "get_course",
+        "read_forum",
+        "post_forum",
+        "list_assignments",
+        "list_exercises"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "courses.read.allow_teacher",
+      "tools": [
+        "get_course",
+        "read_forum",
+        "post_forum",
+        "list_assignments",
+        "list_exercises"
+      ],
+      "roles": [
+        "teacher"
+      ],
+      "effect": "allow",
+      "when": [
+        {
+          "left": "$ctx.is_course_teacher",
+          "op": "is_true"
+        }
+      ]
+    },
+    {
+      "id": "courses.read.allow_student",
+      "tools": [
+        "get_course",
+        "read_forum",
+        "post_forum",
+        "list_assignments",
+        "list_exercises"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "allow",
+      "when": [
+        {
+          "left": "$ctx.is_enrolled",
+          "op": "is_true"
+        }
+      ]
+    },
+    {
+      "id": "courses.write.allow_admin",
+      "tools": [
+        "add_material",
+        "post_announcement"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "courses.write.allow_teacher",
+      "tools": [
+        "add_material",
+        "post_announcement"
+      ],
+      "roles": [
+        "teacher"
+      ],
+      "effect": "allow",
+      "when": [
+        {
+          "left": "$ctx.is_course_teacher",
+          "op": "is_true"
+        }
+      ]
+    },
+    {
+      "id": "assignments.submit.student_only",
+      "tools": [
+        "submit_assignment"
+      ],
+      "roles": [
+        "teacher",
+        "admin"
+      ],
+      "effect": "deny",
+      "reason": "Only students can submit assignments"
+    },
+    {
+      "id": "assignments.submit.self_only",
+      "tools": [
+        "submit_assignment"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$ctx.effective_student_id",
+                "op": "not_exists"
+              }
+            ],
+            [
+              {
+                "left": "$ctx.effective_student_id",
+                "op": "not_equals",
+                "right": "$user.id"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Cannot submit assignment for another student"
+    },
+    {
+      "id": "assignments.submit.access_denied",
+      "tools": [
+        "submit_assignment"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.is_assignment_course_enrolled",
+          "op": "is_false"
+        }
+      ],
+      "reason": "Not enrolled in the course for this assignment"
+    },
+    {
+      "id": "assignments.submit.allow",
+      "tools": [
+        "submit_assignment"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "allow",
+      "when": [
+        {
+          "left": "$ctx.effective_student_id",
+          "op": "equals",
+          "right": "$user.id"
+        },
+        {
+          "left": "$ctx.is_assignment_course_enrolled",
+          "op": "is_true"
+        }
+      ]
+    },
+    {
+      "id": "assignments.not_found",
+      "tools": [
+        "get_submissions"
+      ],
+      "roles": [
+        "*"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.assignment_course_id",
+          "op": "not_exists"
+        }
+      ],
+      "reason": "Assignment not found"
+    },
+    {
+      "id": "assignments.submissions.teacher_only",
+      "tools": [
+        "get_submissions"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "student"
+              }
+            ],
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "teacher"
+              },
+              {
+                "left": "$ctx.is_assignment_course_teacher",
+                "op": "is_false"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Only course teachers can view all submissions"
+    },
+    {
+      "id": "assignments.submissions.allow_admin",
+      "tools": [
+        "get_submissions"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "assignments.submissions.allow_teacher",
+      "tools": [
+        "get_submissions"
+      ],
+      "roles": [
+        "teacher"
+      ],
+      "effect": "allow",
+      "when": [
+        {
+          "left": "$ctx.is_assignment_course_teacher",
+          "op": "is_true"
+        }
+      ]
+    },
+    {
+      "id": "submissions.not_found",
+      "tools": [
+        "grade_submission"
+      ],
+      "roles": [
+        "*"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.submission_course_id",
+          "op": "not_exists"
+        }
+      ],
+      "reason": "Submission not found"
+    },
+    {
+      "id": "grades.write.teacher_only",
+      "tools": [
+        "grade_submission"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "student"
+              }
+            ],
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "teacher"
+              },
+              {
+                "left": "$ctx.is_submission_course_teacher",
+                "op": "is_false"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Cannot grade submission for course you do not teach"
+    },
+    {
+      "id": "grades.write.allow_admin",
+      "tools": [
+        "grade_submission"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "grades.write.allow_teacher",
+      "tools": [
+        "grade_submission"
+      ],
+      "roles": [
+        "teacher"
+      ],
+      "effect": "allow",
+      "when": [
+        {
+          "left": "$ctx.is_submission_course_teacher",
+          "op": "is_true"
+        }
+      ]
+    },
+    {
+      "id": "grades.course_not_found",
+      "tools": [
+        "set_final_grade",
+        "set_component_grade",
+        "publish_grades",
+        "get_gradebook"
+      ],
+      "roles": [
+        "*"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.course_id",
+          "op": "not_exists"
+        }
+      ],
+      "reason": "Course not found"
+    },
+    {
+      "id": "grades.manage.teacher_only",
+      "tools": [
+        "set_final_grade",
+        "set_component_grade",
+        "publish_grades",
+        "get_gradebook"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "student"
+              }
+            ],
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "teacher"
+              },
+              {
+                "left": "$ctx.is_course_teacher",
+                "op": "is_false"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Teacher access required for this course's gradebook"
+    },
+    {
+      "id": "grades.manage.allow_admin",
+      "tools": [
+        "set_final_grade",
+        "set_component_grade",
+        "publish_grades",
+        "get_gradebook"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "grades.manage.allow_teacher",
+      "tools": [
+        "set_final_grade",
+        "set_component_grade",
+        "publish_grades",
+        "get_gradebook"
+      ],
+      "roles": [
+        "teacher"
+      ],
+      "effect": "allow",
+      "when": [
+        {
+          "left": "$ctx.is_course_teacher",
+          "op": "is_true"
+        }
+      ]
+    },
+    {
+      "id": "grades.read.self_only",
+      "tools": [
+        "get_grades"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.student_ref_id",
+          "op": "exists"
+        },
+        {
+          "left": "$ctx.student_ref_id",
+          "op": "not_equals",
+          "right": "$user.id"
+        }
+      ],
+      "reason": "Students can only view their own grades"
+    },
+    {
+      "id": "grades.read.not_found",
+      "tools": [
+        "get_grades"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$args.student_ref",
+          "op": "exists"
+        },
+        {
+          "left": "$ctx.student_ref_id",
+          "op": "not_exists"
+        }
+      ],
+      "reason": "Student not found"
+    },
+    {
+      "id": "grades.read.teacher_course",
+      "tools": [
+        "get_grades"
+      ],
+      "roles": [
+        "teacher"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.course_id",
+          "op": "exists"
+        },
+        {
+          "left": "$ctx.is_course_teacher",
+          "op": "is_false"
+        }
+      ],
+      "reason": "Cannot view grades for course you do not teach"
+    },
+    {
+      "id": "grades.read.allow",
+      "tools": [
+        "get_grades"
+      ],
+      "roles": [
+        "student",
+        "teacher",
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "exercises.not_found",
+      "tools": [
+        "get_exercise",
+        "get_exercise_attempts",
+        "submit_exercise"
+      ],
+      "roles": [
+        "*"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.exercise_course_id",
+          "op": "not_exists"
+        }
+      ],
+      "reason": "Exercise not found"
+    },
+    {
+      "id": "exercises.answers.teacher_only",
+      "tools": [
+        "get_exercise"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "student"
+              }
+            ],
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "teacher"
+              },
+              {
+                "left": "$ctx.is_exercise_course_teacher",
+                "op": "is_false"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Students cannot inspect full exercise with answer keys"
+    },
+    {
+      "id": "exercises.attempts.teacher_only",
+      "tools": [
+        "get_exercise_attempts"
+      ],
+      "roles": [
+        "student",
+        "teacher"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "student"
+              }
+            ],
+            [
+              {
+                "left": "$user.role",
+                "op": "equals",
+                "right": "teacher"
+              },
+              {
+                "left": "$ctx.is_exercise_course_teacher",
+                "op": "is_false"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Only course teachers can inspect exercise attempts"
+    },
+    {
+      "id": "exercises.read.allow_admin",
+      "tools": [
+        "get_exercise",
+        "get_exercise_attempts"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "exercises.read.allow_teacher",
+      "tools": [
+        "get_exercise",
+        "get_exercise_attempts"
+      ],
+      "roles": [
+        "teacher"
+      ],
+      "effect": "allow",
+      "when": [
+        {
+          "left": "$ctx.is_exercise_course_teacher",
+          "op": "is_true"
+        }
+      ]
+    },
+    {
+      "id": "exercises.submit.student_only",
+      "tools": [
+        "submit_exercise"
+      ],
+      "roles": [
+        "teacher",
+        "admin"
+      ],
+      "effect": "deny",
+      "reason": "Only students submit exercises"
+    },
+    {
+      "id": "exercises.submit.self_only",
+      "tools": [
+        "submit_exercise"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$ctx.effective_student_id",
+                "op": "not_exists"
+              }
+            ],
+            [
+              {
+                "left": "$ctx.effective_student_id",
+                "op": "not_equals",
+                "right": "$user.id"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Cannot submit exercise on behalf of others"
+    },
+    {
+      "id": "exercises.submit.not_enrolled",
+      "tools": [
+        "submit_exercise"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.is_exercise_course_enrolled",
+          "op": "is_false"
+        }
+      ],
+      "reason": "Not enrolled in the course for this exercise"
+    },
+    {
+      "id": "exercises.submit.closed",
+      "tools": [
+        "submit_exercise"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "left": "$ctx.exercise_is_open",
+          "op": "is_false"
+        }
+      ],
+      "reason": "Cannot submit to closed exercise"
+    },
+    {
+      "id": "exercises.submit.allow",
+      "tools": [
+        "submit_exercise"
+      ],
+      "roles": [
+        "student"
+      ],
+      "effect": "allow",
+      "when": [
+        {
+          "left": "$ctx.effective_student_id",
+          "op": "equals",
+          "right": "$user.id"
+        },
+        {
+          "left": "$ctx.is_exercise_course_enrolled",
+          "op": "is_true"
+        },
+        {
+          "left": "$ctx.exercise_is_open",
+          "op": "is_true"
+        }
+      ]
+    },
+    {
+      "id": "messages.read.self_only",
+      "tools": [
+        "read_messages"
+      ],
+      "roles": [
+        "*"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$ctx.effective_user_id",
+                "op": "not_exists"
+              }
+            ],
+            [
+              {
+                "left": "$ctx.effective_user_id",
+                "op": "not_equals",
+                "right": "$user.id"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Users can only read their own private messages"
+    },
+    {
+      "id": "messages.read.allow",
+      "tools": [
+        "read_messages"
+      ],
+      "roles": [
+        "student",
+        "teacher",
+        "admin"
+      ],
+      "effect": "allow"
+    },
+    {
+      "id": "messages.send.spoofing_denied",
+      "tools": [
+        "send_message"
+      ],
+      "roles": [
+        "*"
+      ],
+      "effect": "deny",
+      "when": [
+        {
+          "any_of": [
+            [
+              {
+                "left": "$ctx.effective_sender_id",
+                "op": "not_exists"
+              }
+            ],
+            [
+              {
+                "left": "$ctx.effective_sender_id",
+                "op": "not_equals",
+                "right": "$user.id"
+              }
+            ]
+          ]
+        }
+      ],
+      "reason": "Cannot forge sender in messages"
+    },
+    {
+      "id": "messages.send.allow",
+      "tools": [
+        "send_message"
+      ],
+      "roles": [
+        "student",
+        "teacher",
+        "admin"
+      ],
+      "effect": "allow"
+    }
+  ],
+  "redaction_rules": {
+    "always_redact_fields": [
+      "password_hash"
+    ],
+    "restricted_fields": [
+      {
+        "id": "course.enrollment_key",
+        "fields": [
+          "enrollment_key"
+        ],
+        "visible_if": [
+          [
+            {
+              "left": "$user.role",
+              "op": "in",
+              "right": [
+                "teacher",
+                "admin"
+              ]
+            }
+          ]
+        ]
+      },
+      {
+        "id": "pii.admin_only",
+        "fields": [
+          "admin_notes",
+          "amka",
+          "iban",
+          "id_card"
+        ],
+        "visible_if": [
+          [
+            {
+              "left": "$user.role",
+              "op": "equals",
+              "right": "admin"
+            }
+          ]
+        ]
+      },
+      {
+        "id": "pii.phone",
+        "fields": [
+          "phone"
+        ],
+        "visible_if": [
+          [
+            {
+              "left": "$user.role",
+              "op": "equals",
+              "right": "admin"
+            }
+          ],
+          [
+            {
+              "left": "$user.role",
+              "op": "equals",
+              "right": "teacher"
+            }
+          ],
+          [
+            {
+              "left": "$row.id",
+              "op": "equals",
+              "right": "$user.id"
+            }
+          ]
+        ]
+      },
+      {
+        "id": "pii.owner_or_admin",
+        "fields": [
+          "address",
+          "date_of_birth",
+          "father_name"
+        ],
+        "visible_if": [
+          [
+            {
+              "left": "$user.role",
+              "op": "equals",
+              "right": "admin"
+            }
+          ],
+          [
+            {
+              "left": "$row.id",
+              "op": "equals",
+              "right": "$user.id"
+            }
+          ]
+        ]
+      }
+    ],
+    "row_filters": [
+      {
+        "id": "grades.hide_unpublished",
+        "tools": [
+          "get_grades"
+        ],
+        "roles": [
+          "student"
+        ],
+        "result_path": null,
+        "drop_if": [
+          [
+            {
+              "left": "$item.published",
+              "op": "in",
+              "right": [
+                0,
+                "0",
+                false,
+                "false",
+                "False"
+              ]
+            }
+          ]
+        ]
+      },
+      {
+        "id": "gradebook.hide_unpublished_components",
+        "tools": [
+          "get_gradebook"
+        ],
+        "roles": [
+          "student"
+        ],
+        "result_path": "components",
+        "drop_if": [
+          [
+            {
+              "left": "$item.published",
+              "op": "in",
+              "right": [
+                0,
+                "0",
+                false,
+                "false",
+                "False"
+              ]
+            }
+          ]
+        ]
+      },
+      {
+        "id": "courses.only_enrolled",
+        "tools": [
+          "list_courses"
+        ],
+        "roles": [
+          "student"
+        ],
+        "result_path": null,
+        "drop_if": [
+          [
+            {
+              "left": "$item.id",
+              "op": "not_in",
+              "right": "$ctx.enrolled_course_ids"
+            }
+          ]
+        ]
+      },
+      {
+        "id": "courses.get_only_enrolled",
+        "tools": [
+          "get_course"
+        ],
+        "roles": [
+          "student"
+        ],
+        "result_path": null,
+        "drop_if": [
+          [
+            {
+              "left": "$item.id",
+              "op": "not_in",
+              "right": "$ctx.enrolled_course_ids"
+            }
+          ]
+        ]
+      }
+    ]
+  }
+}
