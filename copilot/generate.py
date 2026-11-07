@@ -74,6 +74,7 @@ def generate_policy(intake: dict, analysis: dict, decisions: dict, schema: Schem
     issues: list[dict] = []
     policy, assumptions, open_questions, attempts, raw = None, [], [], 0, None
     last_errors: list[str] = []
+    llm_policy = None
     if llm is not None:
         system = prompts.policy_system()
         user = prompts.policy_user(intake, analysis, decisions["qa"])
@@ -100,6 +101,7 @@ def generate_policy(intake: dict, analysis: dict, decisions: dict, schema: Schem
                 raw = copy.deepcopy(cand)
             if not errors:
                 policy = _prepare(cand, intake, decisions)
+                llm_policy = copy.deepcopy(policy)          # το πρόχειρο του LLM ΠΡΙΝ το safety floor (για μέτρηση)
                 break
             if attempt == max_fix:
                 issues.append(issue("warning", "llm.invalid", f"Το πρόχειρο του LLM έμεινε άκυρο μετά από {max_fix} διορθώσεις "
@@ -125,4 +127,4 @@ def generate_policy(intake: dict, analysis: dict, decisions: dict, schema: Schem
     issues += floor_issues + [i for i in validate_issues(policy) if i["level"] in ("error", "warning")]
     model = getattr(llm, "label", None) if (llm is not None and source == "llm") else "offline"
     return {"policy": policy, "issues": issues, "source": source, "model": model, "assumptions": assumptions,
-            "open_questions": open_questions, "raw_policy": raw, "attempts": attempts}
+            "open_questions": open_questions, "raw_policy": raw, "llm_policy": llm_policy, "attempts": attempts}

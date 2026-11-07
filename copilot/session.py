@@ -181,7 +181,8 @@ class CopilotSession:
             files["resolver_stub.py"] = stub
         self.state["result"] = {"policy": policy, "issues": issues, "scenarios_report": report, "review_md": md,
                                 "matrix": matrix, "files": files, "source": gen["source"], "model": gen["model"],
-                                "confirmed_open": dec["confirmed_open"], "qa": dec["qa"]}
+                                "confirmed_open": dec["confirmed_open"], "qa": dec["qa"],
+                                "llm_policy": gen["llm_policy"], "first_draft": gen["raw_policy"], "attempts": gen["attempts"]}
         self.state["approval"] = None
         return {k: copy.deepcopy(self.state["result"][k]) for k in
                 ("policy", "issues", "scenarios_report", "review_md", "matrix", "files")}
