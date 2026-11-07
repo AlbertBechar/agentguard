@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 
 from .db import execute, query
+from .guard_types import TurnContext
 
 
 # --------------------------------------------------------------------------- πίνακες βάσης
@@ -66,4 +67,93 @@ def _clear_taint(user_id):
 Η _ensure_tables() φτιάχνει τους δύο πίνακες με CREATE TABLE IF NOT EXISTS, δηλαδή μόνο αν λείπουν. Αυτό χρειάζεται γιατί η βάση ξαναδημιουργείται σε κάθε εκκίνηση του Docker.
 Η _log_event() γράφει μια γραμμή «ποιος, ποιο εργαλείο, με ποια ορίσματα, τι αποφασίστηκε και γιατί». Το json.dumps μετατρέπει τα ορίσματα σε κείμενο για να χωρέσουν σε μία στήλη.
 Οι _is_tainted, _set_tainted και _clear_taint διαβάζουν, βάζουν και σβήνουν το σημάδι ανά χρήστη. Τα ? στο SQL κάνουν τη βάση να βάλει τις τιμές με ασφάλεια, και αυτό προστατεύει από SQL injection.
+"""
+
+# --------------------------------------------------------------------------- ο Guard
+
+APPROVAL_MESSAGE = ("A human must approve this in the Guard page (/guard). "
+                    "Tell the user. Do not retry or find another way.")
+APPROVAL_REASON = "high-risk action after untrusted content was read"
+
+
+class Guard:
+    """Αποφασίζει για κάθε κλήση εργαλείου: μπλόκο, έγκριση από άνθρωπο ή εκτέλεση."""
+
+    def __init__(self, policy, sanitizer, approvals, audit_fn=None):
+        # Dependency injection: παίρνουμε τα modules των άλλων ως ορίσματα,
+        # ώστε στα τεστ να βάζουμε ψεύτικα στη θέση τους.
+        self.policy = policy
+        self.sanitizer = sanitizer
+        self.approvals = approvals
+        self.audit_fn = audit_fn or _log_event
+
+    def new_turn(self, user, user_message):
+        """Καλείται στην αρχή κάθε μηνύματος. Φορτώνει το taint από τη βάση."""
+        return TurnContext(user=user, user_message=user_message, tainted=_is_tainted(user["id"]))
+
+    def clear_taint(self, user_id):
+        _clear_taint(user_id)
+
+    def _log(self, ctx, user, name, args, action, reason="", rule="", score=0.0):
+        ctx.events.append({"tool": name, "action": action, "reason": reason, "rule": rule})
+        self.audit_fn(user["id"], name, args, action, reason=reason, rule=rule,
+                      tainted=ctx.tainted, injection_score=score)
+
+    def run_tool(self, ctx, call_tool_fn, user, name, args):
+        args = args or {}
+        try:
+            # 1. Επιτρέπεται αυτή η ενέργεια σε αυτόν τον χρήστη;
+            d = self.policy.check(user, name, args, ctx)
+            if d.action != "allow":  # fail-closed: ό,τι δεν είναι ρητά "allow" μπλοκάρεται
+                self._log(ctx, user, name, args, "deny", d.reason, d.rule)
+                return {"error": f"blocked by policy: {d.reason}"}
+
+            # 2. Επικίνδυνη ενέργεια αφού διαβάστηκε μη-έμπιστο περιεχόμενο -> έγκριση από άνθρωπο.
+            if ctx.tainted and name in self.policy.HIGH_RISK_TOOLS:
+                aid = self.approvals.create_pending(user, name, args, APPROVAL_REASON)
+                self._log(ctx, user, name, args, "approve", APPROVAL_REASON, "taint.high_risk")
+                return {"status": "approval_required", "approval_id": aid, "message": APPROVAL_MESSAGE}
+
+            # 3. Εκτέλεση του πραγματικού εργαλείου.
+            result = call_tool_fn(user, name, args)
+
+            # 4. Αφαιρούμε ό,τι δεν δικαιούται να δει ο χρήστης.
+            result = self.policy.redact(user, name, args, result)
+
+            # 5. Μη-έμπιστο περιεχόμενο: καθαρισμός και σημάδι taint.
+            score = 0.0
+            if name in self.policy.UNTRUSTED_TOOLS:
+                result, _findings, score = self.sanitizer.sanitize_result(name, result, source=name)
+                ctx.tainted = True
+                _set_tainted(user["id"])
+
+            # 6. Καταγραφή και επιστροφή στο LLM.
+            self._log(ctx, user, name, args, "allow", score=score)
+            return result
+
+        except Exception as e:  # fail-closed: αν σκάσει κάτι μέσα στον Guard, μπλοκάρουμε
+            try:
+                self._log(ctx, user, name, args, "deny", f"internal error: {type(e).__name__}: {e}", "guard.error")
+            except Exception:
+                pass  # ακόμα κι αν δεν γράφεται το log, η ενέργεια μένει μπλοκαρισμένη
+            return {"error": "blocked by guard: internal error"}
+
+
+_GUARD = None
+
+
+def get_guard():
+    """Επιστρέφει τον έναν και μοναδικό Guard, με τα πραγματικά modules της ομάδας."""
+    global _GUARD
+    if _GUARD is None:
+        # Import εδώ μέσα (όχι στην κορυφή), για να μη σπάει το guard.py
+        # όσο τα αρχεία των άλλων δεν έχουν φτάσει ακόμα.
+        from . import approvals, eclass_policy, sanitize
+        _GUARD = Guard(eclass_policy, sanitize, approvals)
+    return _GUARD
+
+"""
+Η run_tool ακολουθεί ακριβώς τη σειρά του εγγράφου σας: policy → έγκριση αν η συνομιλία είναι tainted και η ενέργεια high-risk → εκτέλεση → redact → sanitize και taint → log.
+Όλο το σώμα της είναι μέσα σε try/except. Αν σκάσει οτιδήποτε (policy, sanitizer, approvals), επιστρέφει blocked by guard: internal error και το εργαλείο δεν τρέχει.
+Η _log γράφει κάθε απόφαση και στο ctx.events (για debugging) και στον πίνακα guard_events (για τη σελίδα /guard του P4).
 """
