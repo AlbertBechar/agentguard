@@ -1,6 +1,8 @@
 // Athena chat widget.
-// NOTE (deliberately insecure): the assistant's reply is rendered as raw HTML via marked,
-// without sanitization. Think about what a prompt-injected model could output here...
+// SECURITY (AgentGuard, P4): the assistant's reply may be controlled by a prompt-injected model.
+// We turn markdown into HTML with marked, then clean it with an ALLOWLIST before it touches the page:
+// no images (they leak data via the URL with zero clicks), no scripts/iframes/styles/forms,
+// no attributes except a safe href on links.
 (function () {
   const panel = document.getElementById('chat');
   const toggle = document.getElementById('chat-toggle');
@@ -9,12 +11,68 @@
   const input = document.getElementById('chat-input');
   let loaded = false;
 
+  // Only these tags survive (normal markdown formatting). Everything else is removed or unwrapped.
+  const ALLOWED_TAGS = new Set(['P', 'BR', 'HR', 'STRONG', 'B', 'EM', 'I', 'DEL', 'S', 'CODE', 'PRE', 'BLOCKQUOTE',
+    'UL', 'OL', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'A', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 'SPAN']);
+  // These are dropped together with their content (unwrapping a <script> would leave its code as text).
+  const DROP_TAGS = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'FRAME', 'FRAMESET', 'OBJECT', 'EMBED', 'LINK', 'META',
+    'BASE', 'FORM', 'INPUT', 'BUTTON', 'TEXTAREA', 'SELECT', 'SVG', 'MATH', 'VIDEO', 'AUDIO', 'SOURCE', 'PICTURE',
+    'NOSCRIPT', 'TEMPLATE']);
+
+  // Links: only http(s) or relative (which resolve to our own http(s) origin). Blocks javascript:, data:, ...
+  function safeHref(href) {
+    try {
+      const u = new URL(href, location.href);
+      return (u.protocol === 'http:' || u.protocol === 'https:') ? u.href : null;
+    } catch (e) { return null; }
+  }
+
+  function cleanNode(node) {
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) continue;
+      if (child.nodeType !== Node.ELEMENT_NODE) { child.remove(); continue; }  // e.g. HTML comments
+      const tag = child.tagName.toUpperCase();
+      if (tag === 'IMG') { child.replaceWith(document.createTextNode('[image blocked]')); continue; }
+      if (DROP_TAGS.has(tag)) { child.remove(); continue; }
+      cleanNode(child);                                    // clean the inside first
+      if (!ALLOWED_TAGS.has(tag)) { child.replaceWith(...child.childNodes); continue; }  // unknown tag: keep text
+      for (const attr of Array.from(child.attributes)) {  // removes on*, style, src, class, ... everything
+        if (!(tag === 'A' && attr.name === 'href')) child.removeAttribute(attr.name);
+      }
+      if (tag === 'A') {
+        const href = safeHref(child.getAttribute('href') || '');
+        if (href) {
+          child.setAttribute('href', href);
+          child.setAttribute('rel', 'noopener noreferrer');
+          child.setAttribute('target', '_blank');
+        } else {
+          child.removeAttribute('href');
+        }
+      }
+    }
+  }
+
+  // markdown -> safe DocumentFragment. A <template> is inert: nothing inside it loads or runs,
+  // so we can inspect and clean the HTML before it is inserted into the real page.
+  function renderAssistant(text) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = marked.parse(text || '');
+    cleanNode(tpl.content);
+    return tpl.content;
+  }
+  // For checking from the DevTools console: renderAssistantHTML('![x](http://evil.example/p.png)')
+  window.renderAssistantHTML = function (text) {
+    const div = document.createElement('div');
+    div.appendChild(renderAssistant(text));
+    return div.innerHTML;
+  };
+
   function scroll() { log.scrollTop = log.scrollHeight; }
 
   function add(role, text) {
     const div = document.createElement('div');
     div.className = 'msg ' + role;
-    if (role === 'assistant') div.innerHTML = marked.parse(text || '');
+    if (role === 'assistant') div.appendChild(renderAssistant(text));
     else div.textContent = text;
     log.appendChild(div);
     scroll();
