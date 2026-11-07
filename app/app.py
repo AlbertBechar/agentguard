@@ -475,3 +475,16 @@ def forbidden(_e):
 @app.errorhandler(404)
 def not_found(_e):
     return render_template("error.html", code=404, msg="Page not found."), 404
+
+
+try:
+    from .guard_ui import bp as guard_bp
+    app.register_blueprint(guard_bp)
+except ImportError as e:
+    print(f"[guard] /guard page not loaded: {e}", flush=True)   # το UI του P4 δεν έχει φτάσει ή έχει σφάλμα
+
+"""
+Το blueprint είναι ένα «πακέτο σελίδων» του Flask που μπορείς να «κουμπώσεις» σε μια εφαρμογή. Εδώ κουμπώνουμε τη σελίδα /guard του P4.
+Το try/except σημαίνει ότι, αν λείπει το αρχείο του P4, η εφαρμογή συνεχίζει να τρέχει, απλώς χωρίς τη σελίδα.
+Το print γράφει στα logs του Docker γιατί δεν φόρτωσε. Χωρίς αυτό, ένα λάθος στο αρχείο του P4 θα κρυβόταν σιωπηλά.
+"""

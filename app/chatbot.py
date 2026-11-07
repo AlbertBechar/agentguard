@@ -15,6 +15,7 @@ import requests
 
 from .db import execute, query
 from .tools import DECLARATIONS, call_tool
+from .guard import get_guard
 
 PROVIDER = os.environ.get("LLM_PROVIDER", "gemini").strip().lower()
 if PROVIDER == "gemini":
@@ -222,7 +223,7 @@ def save_history(user_id, contents):
 
 def reset_history(user_id):
     execute("DELETE FROM chat_history WHERE user_id = ?", (user_id,))
-
+    get_guard().clear_taint(user_id)
 
 def visible_history(user_id):
     """Plain user/assistant text turns, for re-rendering the chat panel."""
@@ -288,6 +289,7 @@ def chat_events(user, message):
     sys_text = system_prompt(user)
     pending = []  # log lines produced inside _generate
     log = lambda text: pending.append({"type": "log", "text": text})
+    guard = get_guard(); ctx = guard.new_turn(user, message)
 
     try:
         for step in range(MAX_STEPS):
@@ -309,7 +311,7 @@ def chat_events(user, message):
 
             results = []
             for call_id, name, args in calls:
-                result = call_tool(user, name, args)
+                result = guard.run_tool(ctx, call_tool, user, name, args)
                 result = json.loads(json.dumps(result, default=str))
                 yield {"type": "tool", "name": name, "args": args, "result": result}
                 results.append((call_id, name, result))
