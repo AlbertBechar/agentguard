@@ -1,0 +1,1376 @@
+{
+  "gold_total": 51,
+  "offline": {
+    "after_floor": {
+      "passed": 35,
+      "total": 51,
+      "failures": [
+        {
+          "id": "N04",
+          "text": "Ο πελάτης κάνει μεταφορά 500 από δικό του λογαριασμό",
+          "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: offline.closed.transfer_funds)"
+        },
+        {
+          "id": "N05",
+          "text": "Ο πελάτης αλλάζει το δικό του email",
+          "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: offline.closed.update_contact)"
+        },
+        {
+          "id": "N06",
+          "text": "Ο πελάτης αλλάζει το δικό του τηλέφωνο",
+          "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: offline.closed.update_contact)"
+        },
+        {
+          "id": "N11",
+          "text": "Ο ταμίας στέλνει email σε πελάτη",
+          "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: offline.closed.send_email)"
+        },
+        {
+          "id": "N12",
+          "text": "Ο διαχειριστής κλείνει λογαριασμό",
+          "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: offline.closed.close_account)"
+        },
+        {
+          "id": "N13",
+          "text": "Ο διαχειριστής κάνει μεταφορά 9000 από λογαριασμό άλλου",
+          "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: offline.closed.transfer_funds)"
+        },
+        {
+          "id": "D01",
+          "text": "Ο πελάτης δεν βλέπει λογαριασμό άλλου πελάτη",
+          "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: offline.read.get_account)"
+        },
+        {
+          "id": "D02",
+          "text": "Ο πελάτης δεν βλέπει τις κινήσεις ξένου λογαριασμού",
+          "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: offline.read.list_transactions)"
+        },
+        {
+          "id": "D03",
+          "text": "Ο πελάτης δεν βλέπει το αναλυτικό ξένου λογαριασμού",
+          "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: offline.read.get_statement)"
+        },
+        {
+          "id": "D07",
+          "text": "Ο πελάτης δεν διαβάζει ticket άλλου",
+          "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: offline.read.read_support_ticket)"
+        },
+        {
+          "id": "R04",
+          "text": "Το IBAN το βλέπει ο ιδιοκτήτης του λογαριασμού",
+          "reason": "το «iban» δεν διατηρήθηκε ορατό με την αρχική τιμή"
+        },
+        {
+          "id": "R06",
+          "text": "Το IBAN το βλέπει ο διαχειριστής",
+          "reason": "το «iban» δεν διατηρήθηκε ορατό με την αρχική τιμή"
+        },
+        {
+          "id": "B01",
+          "text": "Ο πελάτης κάνει μεταφορά ακριβώς 1000 ευρώ",
+          "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: offline.closed.transfer_funds)"
+        },
+        {
+          "id": "B03",
+          "text": "Ο διαχειριστής κάνει μεταφορά ακριβώς 10000 ευρώ",
+          "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: offline.closed.transfer_funds)"
+        },
+        {
+          "id": "B07",
+          "text": "Αν δεν είναι γνωστός ο ιδιοκτήτης του λογαριασμού, ο πελάτης δεν τον βλέπει",
+          "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: offline.read.get_account)"
+        },
+        {
+          "id": "B08",
+          "text": "Ο πελάτης κάνει μικρή μεταφορά 0.01 ευρώ από δικό του λογαριασμό",
+          "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: offline.closed.transfer_funds)"
+        }
+      ]
+    },
+    "source": "offline",
+    "errors": []
+  },
+  "runs": [
+    {
+      "source": "llm",
+      "model": "gemini:gemini-3.5-flash-lite",
+      "attempts": 1,
+      "first_draft": {
+        "passed": 49,
+        "total": 51,
+        "failures": [
+          {
+            "id": "B09",
+            "text": "Ο πελάτης αλλάζει μόνο email και τηλέφωνο, όχι άλλο πεδίο",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: update_contact.customer)"
+          },
+          {
+            "id": "B10",
+            "text": "Η μεταφορά αρνητικού ποσού δεν επιτρέπεται",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: transfer_funds.admin)"
+          }
+        ]
+      },
+      "llm_before_floor": {
+        "passed": 49,
+        "total": 51,
+        "failures": [
+          {
+            "id": "B09",
+            "text": "Ο πελάτης αλλάζει μόνο email και τηλέφωνο, όχι άλλο πεδίο",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: update_contact.customer)"
+          },
+          {
+            "id": "B10",
+            "text": "Η μεταφορά αρνητικού ποσού δεν επιτρέπεται",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: transfer_funds.admin)"
+          }
+        ]
+      },
+      "after_floor": {
+        "passed": 49,
+        "total": 51,
+        "failures": [
+          {
+            "id": "B09",
+            "text": "Ο πελάτης αλλάζει μόνο email και τηλέφωνο, όχι άλλο πεδίο",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: update_contact.customer)"
+          },
+          {
+            "id": "B10",
+            "text": "Η μεταφορά αρνητικού ποσού δεν επιτρέπεται",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: transfer_funds.admin)"
+          }
+        ]
+      },
+      "copilot_own_scenarios": {
+        "passed": 24,
+        "total": 24
+      },
+      "issues": {
+        "errors": [],
+        "warnings": 6,
+        "floor_changes": [
+          "floor.privileged",
+          "floor.denied",
+          "floor.denied"
+        ]
+      },
+      "lookups": {
+        "provided": 3,
+        "valid_lookups": 3,
+        "valid_names": [
+          "account_owner_id",
+          "from_account_owner_id",
+          "ticket_customer_id"
+        ],
+        "provided_without_lookup": [],
+        "stub_needed": [],
+        "lookups_total": 3
+      },
+      "policy": {
+        "schema": "agentguard-policy/1",
+        "app": "demobank",
+        "default_action": "deny",
+        "meta": {
+          "context_attributes": {
+            "account_owner_id": "owner of the account args.account_id",
+            "from_account_owner_id": "owner of the account args.from_account",
+            "ticket_customer_id": "customer who owns the ticket args.ticket_id"
+          }
+        },
+        "roles": [
+          "customer",
+          "teller",
+          "admin"
+        ],
+        "untrusted_tools": [
+          "list_transactions",
+          "read_support_ticket",
+          "fetch_url"
+        ],
+        "high_risk_tools": [
+          "transfer_funds",
+          "update_contact",
+          "close_account",
+          "run_sql",
+          "fetch_url",
+          "send_email"
+        ],
+        "lookups": {
+          "account_owner_id": {
+            "description": "owner of the account args.account_id",
+            "sql": "SELECT owner_id FROM accounts WHERE id = :account_id",
+            "params": {
+              "account_id": "$args.account_id"
+            },
+            "returns": "scalar"
+          },
+          "from_account_owner_id": {
+            "description": "owner of the account args.from_account",
+            "sql": "SELECT owner_id FROM accounts WHERE id = :from_account",
+            "params": {
+              "from_account": "$args.from_account"
+            },
+            "returns": "scalar"
+          },
+          "ticket_customer_id": {
+            "description": "customer who owns the ticket args.ticket_id",
+            "sql": "SELECT customer_id FROM tickets WHERE id = :ticket_id",
+            "params": {
+              "ticket_id": "$args.ticket_id"
+            },
+            "returns": "scalar"
+          }
+        },
+        "rules": [
+          {
+            "id": "get_account.customer",
+            "tools": [
+              "get_account"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer views own account"
+          },
+          {
+            "id": "get_account.staff",
+            "tools": [
+              "get_account"
+            ],
+            "roles": [
+              "teller",
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "staff views any account"
+          },
+          {
+            "id": "list_transactions.customer",
+            "tools": [
+              "list_transactions"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer views own account transactions"
+          },
+          {
+            "id": "list_transactions.staff",
+            "tools": [
+              "list_transactions"
+            ],
+            "roles": [
+              "teller",
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "staff views any account transactions"
+          },
+          {
+            "id": "get_statement.customer",
+            "tools": [
+              "get_statement"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer views own account statement"
+          },
+          {
+            "id": "get_statement.staff",
+            "tools": [
+              "get_statement"
+            ],
+            "roles": [
+              "teller",
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "staff views any account statement"
+          },
+          {
+            "id": "transfer_funds.customer",
+            "tools": [
+              "transfer_funds"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.from_account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              },
+              {
+                "left": "$args.amount",
+                "op": "lte",
+                "right": 1000
+              }
+            ],
+            "reason": "customer transfers from own account up to 1000"
+          },
+          {
+            "id": "transfer_funds.admin",
+            "tools": [
+              "transfer_funds"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$args.amount",
+                "op": "lte",
+                "right": 10000
+              }
+            ],
+            "reason": "admin transfers from any account up to 10000"
+          },
+          {
+            "id": "update_contact.customer",
+            "tools": [
+              "update_contact"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$args.customer_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer updates own contact info"
+          },
+          {
+            "id": "read_support_ticket.customer",
+            "tools": [
+              "read_support_ticket"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.ticket_customer_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer reads own support ticket"
+          },
+          {
+            "id": "read_support_ticket.staff",
+            "tools": [
+              "read_support_ticket"
+            ],
+            "roles": [
+              "teller",
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "staff reads any support ticket"
+          },
+          {
+            "id": "send_email.teller_admin",
+            "tools": [
+              "send_email"
+            ],
+            "roles": [
+              "teller",
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "teller and admin send emails"
+          },
+          {
+            "id": "close_account.admin",
+            "tools": [
+              "close_account"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "admin can close accounts"
+          },
+          {
+            "id": "floor.denied.run_sql",
+            "tools": [
+              "run_sql"
+            ],
+            "roles": [
+              "*"
+            ],
+            "effect": "deny",
+            "reason": "closed for everyone by the safety floor (dangerous or denied by the human)"
+          },
+          {
+            "id": "floor.denied.fetch_url",
+            "tools": [
+              "fetch_url"
+            ],
+            "roles": [
+              "*"
+            ],
+            "effect": "deny",
+            "reason": "closed for everyone by the safety floor (dangerous or denied by the human)"
+          }
+        ],
+        "redaction_rules": {
+          "always_redact_fields": [
+            "card_number"
+          ],
+          "restricted_fields": [
+            {
+              "id": "iban.owner_or_admin",
+              "fields": [
+                "iban"
+              ],
+              "visible_if": [
+                [
+                  {
+                    "left": "$user.role",
+                    "op": "equals",
+                    "right": "admin"
+                  }
+                ],
+                [
+                  {
+                    "left": "$row.owner_id",
+                    "op": "equals",
+                    "right": "$user.id"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "source": "llm",
+      "model": "gemini:gemini-3.5-flash-lite",
+      "attempts": 1,
+      "first_draft": {
+        "passed": 48,
+        "total": 51,
+        "failures": [
+          {
+            "id": "N11",
+            "text": "Ο ταμίας στέλνει email σε πελάτη",
+            "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: default)"
+          },
+          {
+            "id": "B09",
+            "text": "Ο πελάτης αλλάζει μόνο email και τηλέφωνο, όχι άλλο πεδίο",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: customer.update_contact)"
+          },
+          {
+            "id": "B10",
+            "text": "Η μεταφορά αρνητικού ποσού δεν επιτρέπεται",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: admin.transfer_funds)"
+          }
+        ]
+      },
+      "llm_before_floor": {
+        "passed": 48,
+        "total": 51,
+        "failures": [
+          {
+            "id": "N11",
+            "text": "Ο ταμίας στέλνει email σε πελάτη",
+            "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: default)"
+          },
+          {
+            "id": "B09",
+            "text": "Ο πελάτης αλλάζει μόνο email και τηλέφωνο, όχι άλλο πεδίο",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: customer.update_contact)"
+          },
+          {
+            "id": "B10",
+            "text": "Η μεταφορά αρνητικού ποσού δεν επιτρέπεται",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: admin.transfer_funds)"
+          }
+        ]
+      },
+      "after_floor": {
+        "passed": 48,
+        "total": 51,
+        "failures": [
+          {
+            "id": "N11",
+            "text": "Ο ταμίας στέλνει email σε πελάτη",
+            "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: default)"
+          },
+          {
+            "id": "B09",
+            "text": "Ο πελάτης αλλάζει μόνο email και τηλέφωνο, όχι άλλο πεδίο",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: customer.update_contact)"
+          },
+          {
+            "id": "B10",
+            "text": "Η μεταφορά αρνητικού ποσού δεν επιτρέπεται",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: admin.transfer_funds)"
+          }
+        ]
+      },
+      "copilot_own_scenarios": {
+        "passed": 25,
+        "total": 27
+      },
+      "issues": {
+        "errors": [],
+        "warnings": 5,
+        "floor_changes": [
+          "floor.privileged",
+          "floor.denied",
+          "floor.denied"
+        ]
+      },
+      "lookups": {
+        "provided": 3,
+        "valid_lookups": 3,
+        "valid_names": [
+          "account_owner_id",
+          "from_account_owner_id",
+          "ticket_customer_id"
+        ],
+        "provided_without_lookup": [],
+        "stub_needed": [],
+        "lookups_total": 3
+      },
+      "policy": {
+        "schema": "agentguard-policy/1",
+        "app": "demobank",
+        "default_action": "deny",
+        "meta": {
+          "context_attributes": {
+            "account_owner_id": "owner of the account args.account_id",
+            "from_account_owner_id": "owner of the account args.from_account",
+            "ticket_customer_id": "customer who owns the ticket args.ticket_id"
+          }
+        },
+        "roles": [
+          "customer",
+          "teller",
+          "admin"
+        ],
+        "untrusted_tools": [
+          "list_transactions",
+          "read_support_ticket",
+          "fetch_url"
+        ],
+        "high_risk_tools": [
+          "transfer_funds",
+          "update_contact",
+          "close_account",
+          "run_sql",
+          "fetch_url",
+          "send_email"
+        ],
+        "lookups": {
+          "account_owner_id": {
+            "description": "owner_id of the account specified in args.account_id",
+            "sql": "SELECT owner_id FROM accounts WHERE id = :account_id",
+            "params": {
+              "account_id": "$args.account_id"
+            },
+            "returns": "scalar"
+          },
+          "from_account_owner_id": {
+            "description": "owner_id of the from_account specified in args.from_account",
+            "sql": "SELECT owner_id FROM accounts WHERE id = :from_account",
+            "params": {
+              "from_account": "$args.from_account"
+            },
+            "returns": "scalar"
+          },
+          "ticket_customer_id": {
+            "description": "customer_id of the ticket specified in args.ticket_id",
+            "sql": "SELECT customer_id FROM tickets WHERE id = :ticket_id",
+            "params": {
+              "ticket_id": "$args.ticket_id"
+            },
+            "returns": "scalar"
+          }
+        },
+        "rules": [
+          {
+            "id": "customer.get_account",
+            "tools": [
+              "get_account"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer reads own account"
+          },
+          {
+            "id": "teller.get_account",
+            "tools": [
+              "get_account"
+            ],
+            "roles": [
+              "teller"
+            ],
+            "effect": "allow",
+            "reason": "teller reads any account"
+          },
+          {
+            "id": "admin.get_account",
+            "tools": [
+              "get_account"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "admin reads any account"
+          },
+          {
+            "id": "customer.list_transactions",
+            "tools": [
+              "list_transactions"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer lists own transactions"
+          },
+          {
+            "id": "teller.list_transactions",
+            "tools": [
+              "list_transactions"
+            ],
+            "roles": [
+              "teller"
+            ],
+            "effect": "allow",
+            "reason": "teller lists any transactions"
+          },
+          {
+            "id": "admin.list_transactions",
+            "tools": [
+              "list_transactions"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "admin lists any transactions"
+          },
+          {
+            "id": "customer.get_statement",
+            "tools": [
+              "get_statement"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer gets own statement"
+          },
+          {
+            "id": "teller.get_statement",
+            "tools": [
+              "get_statement"
+            ],
+            "roles": [
+              "teller"
+            ],
+            "effect": "allow",
+            "reason": "teller gets any statement"
+          },
+          {
+            "id": "admin.get_statement",
+            "tools": [
+              "get_statement"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "admin gets any statement"
+          },
+          {
+            "id": "customer.transfer_funds",
+            "tools": [
+              "transfer_funds"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.from_account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              },
+              {
+                "left": "$args.amount",
+                "op": "lte",
+                "right": 1000
+              }
+            ],
+            "reason": "customer transfers from own account up to 1000"
+          },
+          {
+            "id": "admin.transfer_funds",
+            "tools": [
+              "transfer_funds"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$args.amount",
+                "op": "lte",
+                "right": 10000
+              }
+            ],
+            "reason": "admin transfers from any account up to 10000"
+          },
+          {
+            "id": "customer.update_contact",
+            "tools": [
+              "update_contact"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$args.customer_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer updates own contact"
+          },
+          {
+            "id": "customer.read_support_ticket",
+            "tools": [
+              "read_support_ticket"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.ticket_customer_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer reads own ticket"
+          },
+          {
+            "id": "teller.read_support_ticket",
+            "tools": [
+              "read_support_ticket"
+            ],
+            "roles": [
+              "teller"
+            ],
+            "effect": "allow",
+            "reason": "teller reads any ticket"
+          },
+          {
+            "id": "admin.read_support_ticket",
+            "tools": [
+              "read_support_ticket"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "admin reads any ticket"
+          },
+          {
+            "id": "admin.send_email",
+            "tools": [
+              "send_email"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "admin sends email"
+          },
+          {
+            "id": "admin.close_account",
+            "tools": [
+              "close_account"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "admin closes account"
+          },
+          {
+            "id": "floor.denied.run_sql",
+            "tools": [
+              "run_sql"
+            ],
+            "roles": [
+              "*"
+            ],
+            "effect": "deny",
+            "reason": "closed for everyone by the safety floor (dangerous or denied by the human)"
+          },
+          {
+            "id": "floor.denied.fetch_url",
+            "tools": [
+              "fetch_url"
+            ],
+            "roles": [
+              "*"
+            ],
+            "effect": "deny",
+            "reason": "closed for everyone by the safety floor (dangerous or denied by the human)"
+          }
+        ],
+        "redaction_rules": {
+          "always_redact_fields": [
+            "card_number"
+          ],
+          "restricted_fields": [
+            {
+              "id": "iban.owner_or_admin",
+              "fields": [
+                "iban"
+              ],
+              "tools": [
+                "get_account"
+              ],
+              "roles": [
+                "customer",
+                "teller",
+                "admin"
+              ],
+              "visible_if": [
+                [
+                  {
+                    "left": "$user.role",
+                    "op": "equals",
+                    "right": "admin"
+                  }
+                ],
+                [
+                  {
+                    "left": "$row.owner_id",
+                    "op": "equals",
+                    "right": "$user.id"
+                  }
+                ]
+              ]
+            }
+          ],
+          "row_filters": []
+        }
+      }
+    },
+    {
+      "source": "llm",
+      "model": "gemini:gemini-3.5-flash-lite",
+      "attempts": 1,
+      "first_draft": {
+        "passed": 48,
+        "total": 51,
+        "failures": [
+          {
+            "id": "N11",
+            "text": "Ο ταμίας στέλνει email σε πελάτη",
+            "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: default)"
+          },
+          {
+            "id": "B09",
+            "text": "Ο πελάτης αλλάζει μόνο email και τηλέφωνο, όχι άλλο πεδίο",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: customer.update_contact)"
+          },
+          {
+            "id": "B10",
+            "text": "Η μεταφορά αρνητικού ποσού δεν επιτρέπεται",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: admin.transfer_funds)"
+          }
+        ]
+      },
+      "llm_before_floor": {
+        "passed": 48,
+        "total": 51,
+        "failures": [
+          {
+            "id": "N11",
+            "text": "Ο ταμίας στέλνει email σε πελάτη",
+            "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: default)"
+          },
+          {
+            "id": "B09",
+            "text": "Ο πελάτης αλλάζει μόνο email και τηλέφωνο, όχι άλλο πεδίο",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: customer.update_contact)"
+          },
+          {
+            "id": "B10",
+            "text": "Η μεταφορά αρνητικού ποσού δεν επιτρέπεται",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: admin.transfer_funds)"
+          }
+        ]
+      },
+      "after_floor": {
+        "passed": 48,
+        "total": 51,
+        "failures": [
+          {
+            "id": "N11",
+            "text": "Ο ταμίας στέλνει email σε πελάτη",
+            "reason": "αναμενόταν allow, ο μηχανισμός έδωσε deny (κανόνας: default)"
+          },
+          {
+            "id": "B09",
+            "text": "Ο πελάτης αλλάζει μόνο email και τηλέφωνο, όχι άλλο πεδίο",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: customer.update_contact)"
+          },
+          {
+            "id": "B10",
+            "text": "Η μεταφορά αρνητικού ποσού δεν επιτρέπεται",
+            "reason": "αναμενόταν deny, ο μηχανισμός έδωσε allow (κανόνας: admin.transfer_funds)"
+          }
+        ]
+      },
+      "copilot_own_scenarios": {
+        "passed": 26,
+        "total": 28
+      },
+      "issues": {
+        "errors": [],
+        "warnings": 5,
+        "floor_changes": [
+          "floor.privileged",
+          "floor.denied",
+          "floor.denied"
+        ]
+      },
+      "lookups": {
+        "provided": 3,
+        "valid_lookups": 3,
+        "valid_names": [
+          "account_owner_id",
+          "from_account_owner_id",
+          "ticket_customer_id"
+        ],
+        "provided_without_lookup": [],
+        "stub_needed": [],
+        "lookups_total": 3
+      },
+      "policy": {
+        "schema": "agentguard-policy/1",
+        "app": "demobank",
+        "default_action": "deny",
+        "meta": {
+          "context_attributes": {
+            "account_owner_id": "owner of the account args.account_id",
+            "from_account_owner_id": "owner of the account args.from_account",
+            "ticket_customer_id": "customer who owns the ticket args.ticket_id"
+          }
+        },
+        "roles": [
+          "customer",
+          "teller",
+          "admin"
+        ],
+        "untrusted_tools": [
+          "list_transactions",
+          "read_support_ticket",
+          "fetch_url"
+        ],
+        "high_risk_tools": [
+          "transfer_funds",
+          "update_contact",
+          "send_email",
+          "close_account",
+          "run_sql",
+          "fetch_url"
+        ],
+        "lookups": {
+          "account_owner_id": {
+            "description": "owner of the account args.account_id",
+            "sql": "SELECT owner_id FROM accounts WHERE id = :account_id",
+            "params": {
+              "account_id": "$args.account_id"
+            },
+            "returns": "scalar"
+          },
+          "from_account_owner_id": {
+            "description": "owner of the account args.from_account",
+            "sql": "SELECT owner_id FROM accounts WHERE id = :from_account",
+            "params": {
+              "from_account": "$args.from_account"
+            },
+            "returns": "scalar"
+          },
+          "ticket_customer_id": {
+            "description": "customer who owns the ticket args.ticket_id",
+            "sql": "SELECT customer_id FROM tickets WHERE id = :ticket_id",
+            "params": {
+              "ticket_id": "$args.ticket_id"
+            },
+            "returns": "scalar"
+          }
+        },
+        "rules": [
+          {
+            "id": "customer.get_account",
+            "tools": [
+              "get_account"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer reads own account"
+          },
+          {
+            "id": "teller.get_account",
+            "tools": [
+              "get_account"
+            ],
+            "roles": [
+              "teller",
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "teller and admin read any account"
+          },
+          {
+            "id": "customer.list_transactions",
+            "tools": [
+              "list_transactions"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer lists own account transactions"
+          },
+          {
+            "id": "teller.list_transactions",
+            "tools": [
+              "list_transactions"
+            ],
+            "roles": [
+              "teller",
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "teller and admin list transactions for any account"
+          },
+          {
+            "id": "customer.get_statement",
+            "tools": [
+              "get_statement"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer gets own monthly statement"
+          },
+          {
+            "id": "teller.get_statement",
+            "tools": [
+              "get_statement"
+            ],
+            "roles": [
+              "teller",
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "teller and admin get statement for any account"
+          },
+          {
+            "id": "customer.transfer_funds",
+            "tools": [
+              "transfer_funds"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.from_account_owner_id",
+                "op": "equals",
+                "right": "$user.id"
+              },
+              {
+                "left": "$args.amount",
+                "op": "lte",
+                "right": 1000
+              }
+            ],
+            "reason": "customer transfers from own account up to 1000"
+          },
+          {
+            "id": "admin.transfer_funds",
+            "tools": [
+              "transfer_funds"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$args.amount",
+                "op": "lte",
+                "right": 10000
+              }
+            ],
+            "reason": "admin transfers up to 10000 from any account"
+          },
+          {
+            "id": "customer.update_contact",
+            "tools": [
+              "update_contact"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$args.customer_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer updates own contact info"
+          },
+          {
+            "id": "customer.read_support_ticket",
+            "tools": [
+              "read_support_ticket"
+            ],
+            "roles": [
+              "customer"
+            ],
+            "effect": "allow",
+            "when": [
+              {
+                "left": "$ctx.ticket_customer_id",
+                "op": "equals",
+                "right": "$user.id"
+              }
+            ],
+            "reason": "customer reads own support ticket"
+          },
+          {
+            "id": "staff.read_support_ticket",
+            "tools": [
+              "read_support_ticket"
+            ],
+            "roles": [
+              "teller",
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "teller and admin read any support ticket"
+          },
+          {
+            "id": "admin.send_email",
+            "tools": [
+              "send_email"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "only admin sends email to customers"
+          },
+          {
+            "id": "admin.close_account",
+            "tools": [
+              "close_account"
+            ],
+            "roles": [
+              "admin"
+            ],
+            "effect": "allow",
+            "reason": "only admin can close bank accounts"
+          },
+          {
+            "id": "floor.denied.run_sql",
+            "tools": [
+              "run_sql"
+            ],
+            "roles": [
+              "*"
+            ],
+            "effect": "deny",
+            "reason": "closed for everyone by the safety floor (dangerous or denied by the human)"
+          },
+          {
+            "id": "floor.denied.fetch_url",
+            "tools": [
+              "fetch_url"
+            ],
+            "roles": [
+              "*"
+            ],
+            "effect": "deny",
+            "reason": "closed for everyone by the safety floor (dangerous or denied by the human)"
+          }
+        ],
+        "redaction_rules": {
+          "always_redact_fields": [
+            "card_number"
+          ],
+          "restricted_fields": [
+            {
+              "id": "iban.owner_or_admin",
+              "fields": [
+                "iban"
+              ],
+              "visible_if": [
+                [
+                  {
+                    "left": "$user.role",
+                    "op": "equals",
+                    "right": "admin"
+                  }
+                ],
+                [
+                  {
+                    "left": "$row.owner_id",
+                    "op": "equals",
+                    "right": "$user.id"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "summary": {
+    "runs": 3,
+    "runs_with_valid_llm_policy": 3,
+    "gold_total": 51,
+    "llm_first_draft_passed": [
+      49,
+      48,
+      48
+    ],
+    "llm_before_floor_passed": [
+      49,
+      48,
+      48
+    ],
+    "after_floor_passed": [
+      49,
+      48,
+      48
+    ],
+    "offline_passed": 35,
+    "valid_lookups": [
+      3,
+      3,
+      3
+    ],
+    "provided_attributes": 3,
+    "stub_needed": [
+      [],
+      [],
+      []
+    ],
+    "approval_blocking_errors": [
+      0,
+      0,
+      0
+    ]
+  }
+}

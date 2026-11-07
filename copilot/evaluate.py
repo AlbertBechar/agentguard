@@ -159,6 +159,53 @@ def format_report(result: dict) -> str:
     return "\n".join(lines)
 
 
+PUBLIC_DIR = ROOT / "tests" / "fixtures" / "copilot" / "public"
+PUBLIC_CASES = [
+    {"name": "petstore", "tools": "petstore.openapi.json", "company": "Example pet shop", "roles": ["customer", "staff"],
+     "agent": "Assistant for a pet shop (Swagger Petstore API)",
+     "requirements": "Customers may browse pets and place and view their own orders. Only staff may add, update or delete "
+                     "pets, and only staff may manage users. Nobody may do anything that is not needed for these tasks."},
+    {"name": "github_mcp", "tools": "github_mcp_tools.json", "company": "Example engineering team", "roles": ["developer", "maintainer"],
+     "agent": "Coding assistant connected to GitHub through the official GitHub MCP server",
+     "requirements": "Developers may read repository information (issues, pull requests, code, workflow results). Only maintainers "
+                     "may change anything (create, update, merge, delete, run workflows, change settings). Content written by other "
+                     "people, such as issues and comments, may contain malicious instructions."},
+]
+
+
+def run_public(llm, case: dict) -> dict:
+    """Το Copilot σε δημόσια εργαλεία που δεν έχει ξαναδεί. ΔΕΝ υπάρχει gold set: καταγράφουμε μόνο τι παρήχθη και τι ζήτησε."""
+    from collections import Counter
+    from .heuristics import analyze_tools
+    from .tooldefs import load_tools
+    path = PUBLIC_DIR / case["tools"]
+    tools = load_tools(path)
+    analysis = analyze_tools(tools)
+    s = CopilotSession.new(company=case["company"], agent=case["agent"], tools=path, requirements=case["requirements"],
+                           roles=case["roles"], llm=llm)
+    questions = s.questions()
+    res = s.generate()
+    st = s.state["result"]
+    cells = Counter(label for per in res["matrix"].values() for label in per.values())
+    review = res["review_md"]
+    return {"name": case["name"], "tools": len(tools), "source": st["source"], "model": st["model"], "attempts": st["attempts"],
+            "risk": dict(Counter(a["risk"] for a in analysis.values())),
+            "returns_untrusted": sum(a["returns_untrusted"] for a in analysis.values()),
+            "questions_asked": len(questions), "question_samples": [q["text"] for q in questions[:4]],
+            "uncovered_before_floor": sum(1 for i in res["issues"] if i["code"] == "floor.uncovered"),
+            "floor_changes": dict(Counter(i["code"] for i in res["issues"] if i["code"].startswith(("floor.", "probe.")))),
+            "blocking_errors": [i["message"] for i in res["issues"] if i["level"] == "error"][:5],
+            "warnings": sum(1 for i in res["issues"] if i["level"] == "warning"),
+            "matrix_cells": dict(cells), "tools_in_policy": len(PolicyEngine(res["policy"]).tools()),
+            "own_scenarios": {"passed": res["scenarios_report"]["passed"], "total": res["scenarios_report"]["total"]},
+            "review_sample": "\n".join(review.splitlines()[:14])}
+
+
+def evaluate_public(llm_factory) -> list[dict]:
+    """llm_factory() -> LLM ή None (offline). Τρέχει όλες τις PUBLIC_CASES."""
+    return [run_public(llm_factory() if llm_factory else "offline", c) for c in PUBLIC_CASES]
+
+
 def _load_env_key(path: Path) -> None:
     """Διαβάζει AI_STUDIO_API_KEY από αρχείο .env στο περιβάλλον της διεργασίας (δεν τυπώνεται ποτέ)."""
     import os
@@ -182,6 +229,7 @@ def main(argv=None) -> int:
     p.add_argument("--backoff", type=float, default=15.0, help="βάση αναμονής σε 429/5xx")
     p.add_argument("--env-file", default=str(ROOT / ".env"))
     p.add_argument("--offline", action="store_true", help="μόνο η offline πολιτική")
+    p.add_argument("--public", action="store_true", help="τρέχει το Copilot στα δημόσια εργαλεία (Petstore, GitHub MCP)")
     a = p.parse_args(argv)
     _load_env_key(Path(a.env_file))
     import os
@@ -194,6 +242,16 @@ def main(argv=None) -> int:
     else:
         print("[WARN] δεν υπάρχει AI_STUDIO_API_KEY: τρέχει μόνο η offline πολιτική (δεν δοκιμάστηκε με πραγματικό LLM)")
         factory = None
+    if a.public:
+        out = Path(a.out)
+        out.mkdir(parents=True, exist_ok=True)
+        results = evaluate_public(factory)
+        (out / "public.json").write_text(json.dumps(results, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        for r in results:
+            print(f"{r['name']}: {r['tools']} tools, source={r['source']} ({r['model']}), risk={r['risk']}, untrusted={r['returns_untrusted']}, "
+                  f"questions={r['questions_asked']}, uncovered-before-floor={r['uncovered_before_floor']}, matrix cells={r['matrix_cells']}")
+        print(f"[OK] αποτελέσματα: {out / 'public.json'}")
+        return 0
     try:
         result = evaluate_demobank(factory, a.runs, sleep=a.sleep)
     except LLMError as e:
