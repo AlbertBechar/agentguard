@@ -1,0 +1,354 @@
+{
+  "scenarios": [
+    {
+      "id": "S01",
+      "kind": "authorize",
+      "text": "Ο πελάτης δεν βλέπει λογαριασμό άλλου πελάτη",
+      "user": {
+        "id": "c1",
+        "role": "customer"
+      },
+      "tool": "get_account",
+      "args": {
+        "account_id": "A2"
+      },
+      "context": {
+        "account_owner_id": "c2"
+      },
+      "expect": "deny"
+    },
+    {
+      "id": "S02",
+      "kind": "authorize",
+      "text": "Ο πελάτης βλέπει τον δικό του λογαριασμό",
+      "user": {
+        "id": "c1",
+        "role": "customer"
+      },
+      "tool": "get_account",
+      "args": {
+        "account_id": "A1"
+      },
+      "context": {
+        "account_owner_id": "c1"
+      },
+      "expect": "allow"
+    },
+    {
+      "id": "S03",
+      "kind": "authorize",
+      "text": "Ο πελάτης κάνει μεταφορά 500 από δικό του λογαριασμό",
+      "user": {
+        "id": "c1",
+        "role": "customer"
+      },
+      "tool": "transfer_funds",
+      "args": {
+        "from_account": "A1",
+        "to_account": "A9",
+        "amount": 500
+      },
+      "context": {
+        "from_account_owner_id": "c1"
+      },
+      "expect": "allow"
+    },
+    {
+      "id": "S04",
+      "kind": "authorize",
+      "text": "Ο πελάτης δεν κάνει μεταφορά πάνω από 1000",
+      "user": {
+        "id": "c1",
+        "role": "customer"
+      },
+      "tool": "transfer_funds",
+      "args": {
+        "from_account": "A1",
+        "to_account": "A9",
+        "amount": 1500
+      },
+      "context": {
+        "from_account_owner_id": "c1"
+      },
+      "expect": "deny"
+    },
+    {
+      "id": "S05",
+      "kind": "authorize",
+      "text": "Ο πελάτης δεν κάνει μεταφορά από λογαριασμό άλλου",
+      "user": {
+        "id": "c1",
+        "role": "customer"
+      },
+      "tool": "transfer_funds",
+      "args": {
+        "from_account": "A2",
+        "to_account": "A9",
+        "amount": 100
+      },
+      "context": {
+        "from_account_owner_id": "c2"
+      },
+      "expect": "deny"
+    },
+    {
+      "id": "S06",
+      "kind": "authorize",
+      "text": "Ο πελάτης αλλάζει το δικό του email",
+      "user": {
+        "id": "c1",
+        "role": "customer"
+      },
+      "tool": "update_contact",
+      "args": {
+        "customer_id": "c1",
+        "email": "new@x.gr"
+      },
+      "context": {},
+      "expect": "allow"
+    },
+    {
+      "id": "S07",
+      "kind": "authorize",
+      "text": "Ο πελάτης δεν αλλάζει στοιχεία άλλου πελάτη",
+      "user": {
+        "id": "c1",
+        "role": "customer"
+      },
+      "tool": "update_contact",
+      "args": {
+        "customer_id": "c2",
+        "email": "x@y.gr"
+      },
+      "context": {},
+      "expect": "deny"
+    },
+    {
+      "id": "S08",
+      "kind": "authorize",
+      "text": "Ο ταμίας βλέπει οποιονδήποτε λογαριασμό",
+      "user": {
+        "id": "t1",
+        "role": "teller"
+      },
+      "tool": "get_account",
+      "args": {
+        "account_id": "A2"
+      },
+      "context": {
+        "account_owner_id": "c2"
+      },
+      "expect": "allow"
+    },
+    {
+      "id": "S09",
+      "kind": "authorize",
+      "text": "Ο ταμίας δεν κάνει μεταφορές",
+      "user": {
+        "id": "t1",
+        "role": "teller"
+      },
+      "tool": "transfer_funds",
+      "args": {
+        "from_account": "A2",
+        "to_account": "A9",
+        "amount": 10
+      },
+      "context": {
+        "from_account_owner_id": "c2"
+      },
+      "expect": "deny"
+    },
+    {
+      "id": "S10",
+      "kind": "authorize",
+      "text": "Ο ταμίας δεν κλείνει λογαριασμούς",
+      "user": {
+        "id": "t1",
+        "role": "teller"
+      },
+      "tool": "close_account",
+      "args": {
+        "account_id": "A2"
+      },
+      "context": {},
+      "expect": "deny"
+    },
+    {
+      "id": "S11",
+      "kind": "authorize",
+      "text": "Ο διαχειριστής κλείνει λογαριασμούς",
+      "user": {
+        "id": "a1",
+        "role": "admin"
+      },
+      "tool": "close_account",
+      "args": {
+        "account_id": "A2"
+      },
+      "context": {},
+      "expect": "allow"
+    },
+    {
+      "id": "S12",
+      "kind": "authorize",
+      "text": "Ο διαχειριστής κάνει μεταφορά μέχρι 10000",
+      "user": {
+        "id": "a1",
+        "role": "admin"
+      },
+      "tool": "transfer_funds",
+      "args": {
+        "from_account": "A2",
+        "to_account": "A9",
+        "amount": 9000
+      },
+      "context": {},
+      "expect": "allow"
+    },
+    {
+      "id": "S13",
+      "kind": "authorize",
+      "text": "Ο διαχειριστής δεν κάνει μεταφορά πάνω από 10000",
+      "user": {
+        "id": "a1",
+        "role": "admin"
+      },
+      "tool": "transfer_funds",
+      "args": {
+        "from_account": "A2",
+        "to_account": "A9",
+        "amount": 12000
+      },
+      "context": {},
+      "expect": "deny"
+    },
+    {
+      "id": "S14",
+      "kind": "authorize",
+      "text": "Κανένας ρόλος δεν τρέχει run_sql",
+      "user": {
+        "id": "a1",
+        "role": "admin"
+      },
+      "tool": "run_sql",
+      "args": {
+        "query": "select 1"
+      },
+      "context": {},
+      "expect": "deny"
+    },
+    {
+      "id": "S15",
+      "kind": "authorize",
+      "text": "Ο πελάτης διαβάζει δικό του ticket",
+      "user": {
+        "id": "c1",
+        "role": "customer"
+      },
+      "tool": "read_support_ticket",
+      "args": {
+        "ticket_id": "T1"
+      },
+      "context": {
+        "ticket_customer_id": "c1"
+      },
+      "expect": "allow"
+    },
+    {
+      "id": "S16",
+      "kind": "authorize",
+      "text": "Ο πελάτης δεν διαβάζει ticket άλλου",
+      "user": {
+        "id": "c1",
+        "role": "customer"
+      },
+      "tool": "read_support_ticket",
+      "args": {
+        "ticket_id": "T2"
+      },
+      "context": {
+        "ticket_customer_id": "c2"
+      },
+      "expect": "deny"
+    },
+    {
+      "id": "S17",
+      "kind": "redact",
+      "text": "Ο αριθμός κάρτας δεν εμφανίζεται ποτέ",
+      "user": {
+        "id": "t1",
+        "role": "teller"
+      },
+      "tool": "get_account",
+      "args": {
+        "account_id": "A1"
+      },
+      "context": {},
+      "result": {
+        "id": "A1",
+        "owner_id": "c1",
+        "iban": "GR00",
+        "balance": 10,
+        "card_number": "4111111111111111"
+      },
+      "expect_hidden": [
+        "card_number"
+      ],
+      "expect_visible": [
+        "balance"
+      ]
+    },
+    {
+      "id": "S18",
+      "kind": "redact",
+      "text": "Ο ιδιοκτήτης βλέπει το IBAN του",
+      "user": {
+        "id": "c1",
+        "role": "customer"
+      },
+      "tool": "get_account",
+      "args": {
+        "account_id": "A1"
+      },
+      "context": {},
+      "result": {
+        "id": "A1",
+        "owner_id": "c1",
+        "iban": "GR00",
+        "balance": 10
+      },
+      "expect_hidden": [],
+      "expect_visible": [
+        "iban",
+        "balance"
+      ]
+    },
+    {
+      "id": "S19",
+      "kind": "redact",
+      "text": "Ο ταμίας δεν βλέπει το IBAN",
+      "user": {
+        "id": "t1",
+        "role": "teller"
+      },
+      "tool": "get_account",
+      "args": {
+        "account_id": "A1"
+      },
+      "context": {},
+      "result": {
+        "id": "A1",
+        "owner_id": "c1",
+        "iban": "GR00",
+        "balance": 10
+      },
+      "expect_hidden": [
+        "iban"
+      ],
+      "expect_visible": [
+        "balance"
+      ]
+    }
+  ]
+}
