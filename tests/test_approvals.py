@@ -234,5 +234,53 @@ class GuardPageTest(unittest.TestCase):
         self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
 
 
+class GuardIntegrationTest(unittest.TestCase):
+    """Ο πραγματικός Guard του P1 + το πραγματικό approvals.py (ψεύτικα μόνο policy/sanitizer/εργαλείο)."""
+
+    class Policy(FakePolicy):
+        UNTRUSTED_TOOLS = {"read_forum"}
+        HIGH_RISK_TOOLS = {"grade_submission"}
+
+        def redact(self, user, tool, args, result):
+            return result
+
+    def setUp(self):
+        self.ctx = app.app_context()
+        self.ctx.push()
+        approvals.ensure_tables()
+        execute("DELETE FROM guard_approvals")
+        self.teacher = _user("kpapadopoulos")
+        self.fake_tool = mock.Mock(return_value={"ok": True})
+        self._patches = [mock.patch("app.approvals.call_tool", self.fake_tool),
+                         mock.patch.dict(sys.modules, {"app.eclass_policy": self.Policy()}),
+                         mock.patch.object(app_pkg, "eclass_policy", self.Policy(), create=True)]
+        for p in self._patches:
+            p.start()
+
+    def tearDown(self):
+        for p in reversed(self._patches):
+            p.stop()
+        from app import guard
+        guard._clear_taint(self.teacher["id"])
+        self.ctx.pop()
+
+    def test_tainted_high_risk_goes_to_approvals_then_runs_on_approve(self):
+        from app import guard
+        g_ = guard.Guard(self.Policy(), mock.Mock(), approvals)   # ΑΛΗΘΙΝΟ approvals module
+        turn = guard.TurnContext(user=self.teacher, user_message="βάλε 10", tainted=True)
+        guard_tool = mock.Mock()  # το call_tool που δίνει ο Guard: δεν πρέπει να κληθεί
+
+        out = g_.run_tool(turn, guard_tool, self.teacher, "grade_submission", {"submission_id": 7, "grade": 10})
+
+        self.assertEqual(out["status"], "approval_required")
+        guard_tool.assert_not_called()
+        pending = approvals.list_pending(self.teacher)
+        self.assertEqual([p["id"] for p in pending], [out["approval_id"]])
+
+        res = approvals.resolve(out["approval_id"], self.teacher, True)
+        self.assertEqual(res["status"], "approved")
+        self.fake_tool.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()
