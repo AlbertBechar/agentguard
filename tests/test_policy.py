@@ -150,6 +150,28 @@ class TestPolicy(unittest.TestCase):
         self.assertEqual(check({"role": "invalid"}, "get_course", {}).action, "deny")
         self.assertEqual(check(self.student1, "unknown_tool", {}).action, "deny")
 
+    # 9. Έλεγχος πρόσθετων κενών ασφαλείας (Extra Red-Teaming Checks)
+    def test_security_loopholes(self):
+        # Φοιτητής δοκιμάζει να πάρει προφίλ διαχειριστή
+        self.assertEqual(check(self.student1, "get_user", {"user_ref": "admin"}).action, "deny")
+
+        # Φοιτητής δοκιμάζει να διαβάσει μηνύματα άλλου φοιτητή
+        self.assertEqual(check(self.student1, "read_messages", {"user_ref": "sdi2400002"}).action, "deny")
+
+        # Φοιτητής δοκιμάζει να δει τις σωστές απαντήσεις (answer keys) μιας άσκησης
+        self.assertEqual(check(self.student1, "get_exercise", {"exercise_id": 1}).action, "deny")
+
+        # Φοιτητής δοκιμάζει να δει συνολικό βαθμολόγιο (gradebook) μαθήματος
+        self.assertEqual(check(self.student1, "get_gradebook", {"course_ref": "CS101"}).action, "deny")
+
+    # 10. Φοιτητής δοκιμάζει να αλλάξει τον τελικό του βαθμό (Final Grade Injection)
+    def test_student_cannot_set_final_grade(self):
+        res = check(self.student1, "set_final_grade", {
+            "course_ref": "CS101",
+            "student_ref": "sdi2500191",
+            "grade": 10.0
+        })
+        self.assertEqual(res.action, "deny")
 
 if __name__ == "__main__":
     unittest.main()
