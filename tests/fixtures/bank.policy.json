@@ -1,0 +1,103 @@
+{
+  "schema": "agentguard-policy/1",
+  "app": "demobank",
+  "default_action": "deny",
+  "meta": {
+    "context_attributes": {
+      "account_owner_id": "owner of the account args.account_id",
+      "from_account_owner_id": "owner of the account args.from_account",
+      "ticket_customer_id": "customer of the ticket args.ticket_id",
+      "owned_account_ids": "ids of the accounts owned by the current user"
+    }
+  },
+  "roles": ["customer", "teller", "admin"],
+  "untrusted_tools": ["list_transactions", "read_support_ticket", "fetch_url"],
+  "high_risk_tools": ["transfer_funds", "update_contact", "send_email", "close_account"],
+  "lookups": {
+    "account_owner_id": {
+      "description": "owner of the account args.account_id",
+      "sql": "SELECT owner_id FROM accounts WHERE id = :account_id",
+      "params": {"account_id": "$args.account_id"},
+      "returns": "scalar"
+    },
+    "from_account_owner_id": {
+      "description": "owner of the account args.from_account",
+      "sql": "SELECT owner_id FROM accounts WHERE id = :from_account",
+      "params": {"from_account": "$args.from_account"},
+      "returns": "scalar"
+    },
+    "ticket_customer_id": {
+      "description": "customer of the ticket args.ticket_id",
+      "sql": "SELECT customer_id FROM tickets WHERE id = :ticket_id",
+      "params": {"ticket_id": "$args.ticket_id"},
+      "returns": "scalar"
+    },
+    "owned_account_ids": {
+      "description": "ids of the accounts owned by the current user",
+      "sql": "SELECT id FROM accounts WHERE owner_id = :uid",
+      "params": {"uid": "$user.id"},
+      "returns": "list"
+    }
+  },
+  "rules": [
+    {"id": "never.sql_and_urls", "tools": ["run_sql", "fetch_url"], "roles": ["*"], "effect": "deny",
+     "reason": "disabled for the chatbot"},
+    {"id": "transfer.hard_limit", "tools": ["transfer_funds"], "roles": ["*"], "effect": "deny",
+     "when": [{"left": "$args.amount", "op": "gt", "right": 10000}],
+     "reason": "above the absolute transfer limit"},
+    {"id": "transfer.positive_only", "tools": ["transfer_funds"], "roles": ["*"], "effect": "deny",
+     "when": [{"left": "$args.amount", "op": "lte", "right": 0}],
+     "reason": "amount must be positive"},
+    {"id": "account.read.owner", "tools": ["get_account", "list_transactions", "get_statement"],
+     "roles": ["customer"], "effect": "allow",
+     "when": [{"left": "$ctx.account_owner_id", "op": "equals", "right": "$user.id"}],
+     "reason": "customers read only their own accounts"},
+    {"id": "account.read.staff", "tools": ["get_account", "list_transactions", "get_statement"],
+     "roles": ["teller", "admin"], "effect": "allow"},
+    {"id": "transfer.customer", "tools": ["transfer_funds"], "roles": ["customer"], "effect": "allow",
+     "when": [
+       {"left": "$args.amount", "op": "lte", "right": 1000},
+       {"left": "$ctx.from_account_owner_id", "op": "equals", "right": "$user.id"}
+     ],
+     "reason": "customers transfer up to 1000 from their own account"},
+    {"id": "transfer.admin", "tools": ["transfer_funds"], "roles": ["admin"], "effect": "allow",
+     "when": [{"left": "$args.amount", "op": "lte", "right": 10000}],
+     "reason": "admins transfer up to 10000"},
+    {"id": "contact.customer_self", "tools": ["update_contact"], "roles": ["customer"], "effect": "allow",
+     "when": [
+       {"left": "$args.customer_id", "op": "equals", "right": "$user.id"},
+       {"left": "$args_keys", "op": "subset_of", "right": ["customer_id", "email", "phone"]}
+     ],
+     "reason": "customers edit only their own email and phone"},
+    {"id": "email.staff", "tools": ["send_email"], "roles": ["teller", "admin"], "effect": "allow"},
+    {"id": "account.close.admin", "tools": ["close_account"], "roles": ["admin"], "effect": "allow"},
+    {"id": "ticket.read.owner", "tools": ["read_support_ticket"], "roles": ["customer"], "effect": "allow",
+     "when": [{"left": "$ctx.ticket_customer_id", "op": "equals", "right": "$user.id"}]},
+    {"id": "ticket.read.staff", "tools": ["read_support_ticket"], "roles": ["teller", "admin"], "effect": "allow"}
+  ],
+  "redaction_rules": {
+    "always_redact_fields": ["card_number"],
+    "restricted_fields": [
+      {"id": "iban.owner_or_admin", "fields": ["iban"],
+       "visible_if": [
+         [{"left": "$user.role", "op": "equals", "right": "admin"}],
+         [{"left": "$row.owner_id", "op": "equals", "right": "$user.id"}]
+       ]},
+      {"id": "email.owner_or_admin", "fields": ["email"],
+       "visible_if": [
+         [{"left": "$user.role", "op": "equals", "right": "admin"}],
+         [{"left": "$row.customer_id", "op": "equals", "right": "$user.id"}]
+       ]}
+    ],
+    "row_filters": [
+      {"id": "transactions.only_own_accounts", "tools": ["list_transactions"], "roles": ["customer"],
+       "result_path": null,
+       "drop_if": [[{"left": "$item.account_id", "op": "not_in", "right": "$ctx.owned_account_ids"}]]},
+      {"id": "statement.only_own_accounts", "tools": ["get_statement"], "roles": ["customer"],
+       "result_path": "transactions",
+       "drop_if": [[{"left": "$item.account_id", "op": "not_in", "right": "$ctx.owned_account_ids"}]]},
+      {"id": "account.only_own", "tools": ["get_account"], "roles": ["customer"], "result_path": null,
+       "drop_if": [[{"left": "$item.owner_id", "op": "not_equals", "right": "$user.id"}]]}
+    ]
+  }
+}

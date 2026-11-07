@@ -219,5 +219,181 @@ class TestGoldenMaster(unittest.TestCase):
         print(f"\n[golden master] {len(baseline)} εγγραφές check, {redact_compared} με redact: όλες ίδιες")
 
 
+# ---------------------------------------------------------------------------
+# Απόδειξη γενίκευσης: ίδιος μηχανισμός, άλλα domains (τράπεζα, υγεία).
+# Ό,τι χρειάζεται η πολιτική έρχεται ως ΑΠΛΟ dict (context): καμία βάση, κανένα import του app.app.
+# ---------------------------------------------------------------------------
+
+def _fixture_engine(name):
+    from pathlib import Path
+    from app.policy_engine import PolicyEngine
+    return PolicyEngine.from_file(Path(__file__).resolve().parent / "fixtures" / f"{name}.policy.json")
+
+
+class TestGeneralizationBank(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = _fixture_engine("bank")
+        cls.c1 = {"id": "c1", "role": "customer"}
+        cls.c2 = {"id": "c2", "role": "customer"}
+        cls.t1 = {"id": "t1", "role": "teller"}
+        cls.a1 = {"id": "a1", "role": "admin"}
+
+    def decide(self, user, tool, args=None, ctx=None):
+        d = self.engine.evaluate(user, tool, args or {}, ctx or {})
+        return d["action"], d["rule"]
+
+    def test_rbac_and_ownership(self):
+        cases = [
+            (self.c1, "get_account", {"account_id": "A1"}, {"account_owner_id": "c1"}, ("allow", "account.read.owner")),
+            (self.c1, "get_account", {"account_id": "A2"}, {"account_owner_id": "c2"}, ("deny", "default")),
+            (self.c1, "get_statement", {"account_id": "A2"}, {"account_owner_id": "c2"}, ("deny", "default")),
+            (self.t1, "get_account", {"account_id": "A2"}, {"account_owner_id": "c2"}, ("allow", "account.read.staff")),
+            (self.c1, "get_account", {"account_id": "A1"}, {}, ("deny", "default")),          # γεγονός που λείπει
+            (self.c1, "read_support_ticket", {"ticket_id": 1}, {"ticket_customer_id": "c1"}, ("allow", "ticket.read.owner")),
+            (self.c2, "read_support_ticket", {"ticket_id": 1}, {"ticket_customer_id": "c1"}, ("deny", "default")),
+            (self.t1, "send_email", {"to": "x"}, {}, ("allow", "email.staff")),
+            (self.c1, "send_email", {"to": "x"}, {}, ("deny", "default")),
+            (self.t1, "close_account", {"account_id": "A1"}, {}, ("deny", "default")),
+            (self.a1, "close_account", {"account_id": "A1"}, {}, ("allow", "account.close.admin")),
+            (self.a1, "run_sql", {"query": "select 1"}, {}, ("deny", "never.sql_and_urls")),
+            (self.t1, "fetch_url", {"url": "http://x"}, {}, ("deny", "never.sql_and_urls")),
+        ]
+        for user, tool, args, ctx, expected in cases:
+            with self.subTest(user=user["id"], tool=tool, ctx=ctx):
+                self.assertEqual(self.decide(user, tool, args, ctx), expected)
+
+    def test_numeric_limits(self):
+        own = {"from_account_owner_id": "c1"}
+        cases = [
+            (self.c1, {"amount": 1000}, own, ("allow", "transfer.customer")),
+            (self.c1, {"amount": 1000.5}, own, ("deny", "default")),
+            (self.c1, {"amount": "250"}, own, ("allow", "transfer.customer")),
+            (self.c1, {"amount": 5}, {"from_account_owner_id": "c2"}, ("deny", "default")),
+            (self.a1, {"amount": 9999}, {}, ("allow", "transfer.admin")),
+            (self.a1, {"amount": 10001}, {}, ("deny", "transfer.hard_limit")),
+            (self.a1, {"amount": -5}, {}, ("deny", "transfer.positive_only")),
+            (self.a1, {"amount": 0}, {}, ("deny", "transfer.positive_only")),
+            (self.t1, {"amount": 1}, {}, ("deny", "default")),
+        ]
+        for user, args, ctx, expected in cases:
+            with self.subTest(user=user["id"], args=args):
+                self.assertEqual(self.decide(user, "transfer_funds", args, ctx), expected)
+
+    def test_argument_field_restriction(self):
+        ok = {"customer_id": "c1", "email": "a@b.gr", "phone": "6900"}
+        self.assertEqual(self.decide(self.c1, "update_contact", ok)[0], "allow")
+        self.assertEqual(self.decide(self.c1, "update_contact", dict(ok, iban="GR1"))[0], "deny")     # πεδίο εκτός λίστας
+        self.assertEqual(self.decide(self.c1, "update_contact", dict(ok, iban=None))[0], "allow")     # None = δεν δόθηκε
+        self.assertEqual(self.decide(self.c1, "update_contact", dict(ok, customer_id="c2"))[0], "deny")
+
+    def test_redaction_and_row_filters(self):
+        acct = {"id": "A1", "owner_id": "c1", "iban": "GR00", "balance": 10, "card_number": "4111"}
+        redact = lambda user, tool, res, ctx=None: self.engine.redact(user, tool, {}, res, ctx or {})  # noqa: E731
+        for u in (self.c1, self.t1, self.a1):       # ο αριθμός κάρτας δεν φαίνεται ποτέ σε κανέναν
+            self.assertEqual(redact(u, "get_account", dict(acct))["card_number"], "[redacted]")
+        self.assertEqual(redact(self.c1, "get_account", dict(acct))["iban"], "GR00")             # ιδιοκτήτης
+        self.assertEqual(redact(self.a1, "get_account", dict(acct))["iban"], "GR00")             # admin
+        self.assertEqual(redact(self.t1, "get_account", dict(acct))["iban"], "[redacted]")       # teller: όχι
+        self.assertEqual(redact(self.c2, "get_account", dict(acct)), {"error": "not found"})     # άλλου πελάτη
+        txs = [{"id": 1, "account_id": "A1", "memo": "x"}, {"id": 2, "account_id": "A2", "memo": "y"}]
+        mine = {"owned_account_ids": ["A1"]}
+        self.assertEqual([t["id"] for t in redact(self.c1, "list_transactions", txs, mine)], [1])
+        self.assertEqual(len(redact(self.t1, "list_transactions", txs, mine)), 2)
+        self.assertEqual(redact(self.c1, "list_transactions", txs, {"owned_account_ids": []}), [])
+        stmt = {"month": "05", "transactions": txs}
+        self.assertEqual([t["id"] for t in redact(self.c1, "get_statement", stmt, mine)["transactions"]], [1])
+        cust = {"customer_id": "c1", "email": "a@b.gr"}
+        self.assertEqual(redact(self.c1, "get_customer", dict(cust))["email"], "a@b.gr")
+        self.assertEqual(redact(self.t1, "get_customer", dict(cust))["email"], "[redacted]")
+
+    def test_policy_is_valid_and_matrix_makes_sense(self):
+        from app.policy_engine import validate_policy
+        self.assertEqual(validate_policy(self.engine.policy), [])
+        m = self.engine.matrix()
+        self.assertEqual(m["run_sql"], {"customer": "deny", "teller": "deny", "admin": "deny"})
+        self.assertEqual(m["transfer_funds"]["customer"], "conditional")
+        self.assertEqual(m["close_account"], {"customer": "deny", "teller": "deny", "admin": "allow"})
+
+
+class TestGeneralizationHealth(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = _fixture_engine("health")
+        cls.p1 = {"id": "p1", "role": "patient"}
+        cls.p2 = {"id": "p2", "role": "patient"}
+        cls.d1 = {"id": "d1", "role": "doctor"}
+        cls.ad = {"id": "ad", "role": "admin"}
+
+    def decide(self, user, tool, args=None, ctx=None):
+        d = self.engine.evaluate(user, tool, args or {}, ctx or {})
+        return d["action"], d["rule"]
+
+    def test_rbac_and_ownership(self):
+        treating = {"is_treating_doctor": True}
+        cases = [
+            (self.p1, "get_record", {}, {"record_patient_id": "p1"}, ("allow", "record.read.patient_self")),
+            (self.p1, "get_record", {}, {"record_patient_id": "p2"}, ("deny", "default")),
+            (self.d1, "get_record", {}, treating, ("allow", "record.read.treating_doctor")),
+            (self.d1, "get_record", {}, {"is_treating_doctor": False}, ("deny", "default")),
+            (self.d1, "read_notes", {}, treating, ("allow", "record.read.treating_doctor")),
+            (self.p1, "read_notes", {}, {"record_patient_id": "p1"}, ("deny", "default")),       # τα notes όχι στον ασθενή
+            (self.ad, "get_record", {}, {"record_patient_id": "p1"}, ("deny", "default")),       # ούτε ο admin βλέπει ιατρικά
+            (self.p1, "list_appointments", {"patient_id": "p1"}, {}, ("allow", "appointments.list.patient_self")),
+            (self.p1, "list_appointments", {"patient_id": "p2"}, {}, ("deny", "default")),
+            (self.ad, "list_appointments", {}, {}, ("allow", "appointments.list.admin")),
+            (self.p1, "book_appointment", {"patient_id": "p1"}, {}, ("allow", "book.patient_self")),
+            (self.p1, "book_appointment", {"patient_id": "p2"}, {}, ("deny", "default")),
+            (self.ad, "export_all_records", {}, {}, ("deny", "export.never")),
+            (self.d1, "run_sql", {"query": "x"}, {}, ("deny", "never.sql_and_urls")),
+        ]
+        for user, tool, args, ctx, expected in cases:
+            with self.subTest(user=user["id"], tool=tool, args=args, ctx=ctx):
+                self.assertEqual(self.decide(user, tool, args, ctx), expected)
+
+    def test_prescribe_limits_and_field_restriction(self):
+        t = {"is_treating_doctor": True}
+        good = {"patient_id": "p1", "drug": "x", "dose_mg": 100}
+        cases = [
+            (self.d1, good, t, ("allow", "prescribe.treating_doctor")),
+            (self.d1, dict(good, dose_mg=500), t, ("allow", "prescribe.treating_doctor")),
+            (self.d1, dict(good, dose_mg=501), t, ("deny", "prescribe.dose_limit")),
+            (self.d1, dict(good, dose_mg="900"), t, ("deny", "prescribe.dose_limit")),
+            (self.d1, dict(good, refill_count=99), t, ("deny", "default")),                     # πεδίο εκτός λίστας
+            (self.d1, good, {"is_treating_doctor": False}, ("deny", "default")),
+            (self.p1, good, t, ("deny", "default")),
+            (self.ad, good, t, ("deny", "default")),
+        ]
+        for user, args, ctx, expected in cases:
+            with self.subTest(user=user["id"], args=args, ctx=ctx):
+                self.assertEqual(self.decide(user, "prescribe", args, ctx), expected)
+
+    def test_redaction_and_row_filters(self):
+        redact = lambda user, tool, res, ctx=None: self.engine.redact(user, tool, {}, res, ctx or {})  # noqa: E731
+        rec = {"patient_id": "p1", "ssn": "123", "diagnosis": "flu", "insurance_number": "INS-9"}
+        for u in (self.p1, self.d1, self.ad):
+            self.assertEqual(redact(u, "get_record", dict(rec))["ssn"], "[redacted]")        # πάντα κρυμμένο
+        self.assertEqual(redact(self.p1, "get_record", dict(rec))["diagnosis"], "flu")
+        self.assertEqual(redact(self.d1, "get_record", dict(rec))["diagnosis"], "flu")
+        self.assertEqual(redact(self.ad, "get_record", dict(rec))["diagnosis"], "[redacted]")
+        self.assertEqual(redact(self.ad, "get_record", dict(rec))["insurance_number"], "INS-9")
+        self.assertEqual(redact(self.d1, "get_record", dict(rec))["insurance_number"], "[redacted]")
+        self.assertEqual(redact(self.p2, "get_record", dict(rec))["insurance_number"], "[redacted]")
+        appts = {"appointments": [{"id": 1, "patient_id": "p1"}, {"id": 2, "patient_id": "p2"}], "total": 2}
+        out = redact(self.p1, "list_appointments", appts)
+        self.assertEqual([a["id"] for a in out["appointments"]], [1])
+        out = redact(self.d1, "list_appointments", appts, {"treated_patient_ids": ["p2"]})
+        self.assertEqual([a["id"] for a in out["appointments"]], [2])
+        out = redact(self.ad, "list_appointments", appts)
+        self.assertEqual(len(out["appointments"]), 2)
+
+    def test_policy_validates_with_one_expected_warning(self):
+        from app.policy_engine import validate_policy
+        issues = validate_policy(self.engine.policy)
+        self.assertEqual([i["level"] for i in issues], ["warning"])
+        self.assertIn("export_all_records", issues[0]["message"])   # σκόπιμο: απαγορεύεται σε όλους
+        self.assertEqual(self.engine.matrix()["read_notes"], {"patient": "deny", "doctor": "conditional", "admin": "deny"})
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,68 @@
+{
+  "schema": "agentguard-policy/1",
+  "app": "demo-clinic",
+  "default_action": "deny",
+  "meta": {
+    "context_attributes": {
+      "record_patient_id": "patient the record args.record_id belongs to",
+      "is_treating_doctor": "true if the current doctor treats the patient of this call",
+      "treated_patient_ids": "ids of the patients treated by the current doctor"
+    }
+  },
+  "roles": ["patient", "doctor", "admin"],
+  "untrusted_tools": ["read_notes", "get_record"],
+  "high_risk_tools": ["prescribe", "book_appointment", "export_all_records"],
+  "rules": [
+    {"id": "never.sql_and_urls", "tools": ["run_sql", "fetch_url"], "roles": ["*"], "effect": "deny",
+     "reason": "disabled for the assistant"},
+    {"id": "export.never", "tools": ["export_all_records"], "roles": ["*"], "effect": "deny",
+     "reason": "mass export is never allowed through the assistant"},
+    {"id": "prescribe.dose_limit", "tools": ["prescribe"], "roles": ["*"], "effect": "deny",
+     "when": [{"left": "$args.dose_mg", "op": "gt", "right": 500}],
+     "reason": "dose above the safety limit"},
+    {"id": "record.read.patient_self", "tools": ["get_record"], "roles": ["patient"], "effect": "allow",
+     "when": [{"left": "$ctx.record_patient_id", "op": "equals", "right": "$user.id"}],
+     "reason": "patients read only their own record"},
+    {"id": "record.read.treating_doctor", "tools": ["get_record", "read_notes"], "roles": ["doctor"],
+     "effect": "allow",
+     "when": [{"left": "$ctx.is_treating_doctor", "op": "is_true"}],
+     "reason": "doctors read records and notes of their own patients only"},
+    {"id": "appointments.list.patient_self", "tools": ["list_appointments"], "roles": ["patient"],
+     "effect": "allow",
+     "when": [{"left": "$args.patient_id", "op": "equals", "right": "$user.id"}]},
+    {"id": "appointments.list.doctor", "tools": ["list_appointments"], "roles": ["doctor"], "effect": "allow"},
+    {"id": "appointments.list.admin", "tools": ["list_appointments"], "roles": ["admin"], "effect": "allow"},
+    {"id": "prescribe.treating_doctor", "tools": ["prescribe"], "roles": ["doctor"], "effect": "allow",
+     "when": [
+       {"left": "$ctx.is_treating_doctor", "op": "is_true"},
+       {"left": "$args_keys", "op": "subset_of", "right": ["patient_id", "drug", "dose_mg", "notes"]}
+     ],
+     "reason": "only the treating doctor prescribes, and only with the allowed fields"},
+    {"id": "book.patient_self", "tools": ["book_appointment"], "roles": ["patient"], "effect": "allow",
+     "when": [{"left": "$args.patient_id", "op": "equals", "right": "$user.id"}]},
+    {"id": "book.staff", "tools": ["book_appointment"], "roles": ["doctor", "admin"], "effect": "allow"}
+  ],
+  "redaction_rules": {
+    "always_redact_fields": ["ssn"],
+    "restricted_fields": [
+      {"id": "diagnosis.owner_or_doctor", "fields": ["diagnosis"],
+       "visible_if": [
+         [{"left": "$user.role", "op": "equals", "right": "doctor"}],
+         [{"left": "$row.patient_id", "op": "equals", "right": "$user.id"}]
+       ]},
+      {"id": "insurance.owner_or_admin", "fields": ["insurance_number"],
+       "visible_if": [
+         [{"left": "$user.role", "op": "equals", "right": "admin"}],
+         [{"left": "$row.patient_id", "op": "equals", "right": "$user.id"}]
+       ]}
+    ],
+    "row_filters": [
+      {"id": "appointments.patient_only_own", "tools": ["list_appointments"], "roles": ["patient"],
+       "result_path": "appointments",
+       "drop_if": [[{"left": "$item.patient_id", "op": "not_equals", "right": "$user.id"}]]},
+      {"id": "appointments.doctor_only_treated", "tools": ["list_appointments"], "roles": ["doctor"],
+       "result_path": "appointments",
+       "drop_if": [[{"left": "$item.patient_id", "op": "not_in", "right": "$ctx.treated_patient_ids"}]]}
+    ]
+  }
+}

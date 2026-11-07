@@ -834,6 +834,21 @@ class CliTests(unittest.TestCase):
         self.assertEqual(json.loads(out)["reason"], "απενεργοποιημένο για το chatbot")
 
 
+class IndependenceTests(unittest.TestCase):
+    """Ο μηχανισμός δεν εξαρτάται από καμία εφαρμογή, βάση ή web framework."""
+
+    def test_source_mentions_no_application_specifics(self):
+        import re
+        src = (ROOT / "app" / "policy_engine.py").read_text(encoding="utf-8")
+        self.assertEqual(re.findall(r"(?i)eclass|sqlite|flask|app\.", src), [])
+
+    def test_import_loads_no_framework_or_database_modules(self):
+        code = ("import sys; sys.path.insert(0, %r); import app.policy_engine; "
+                "print([m for m in ('flask', 'sqlite3', 'werkzeug', 'requests') if m in sys.modules])" % str(ROOT))
+        out = subprocess.run([sys.executable, "-c", code], capture_output=True, cwd=str(ROOT)).stdout.decode()
+        self.assertEqual(out.strip(), "[]")
+
+
 if __name__ == "__main__":
     if "--regen-baseline" in sys.argv:
         sys.exit(regen_baseline())
