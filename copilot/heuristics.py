@@ -163,11 +163,22 @@ def _sensitive_in(text: str) -> list[str]:
     return sorted({m.group(1) for m in _SENSITIVE_RE.finditer(norm.replace("-", "_"))})
 
 
+def _sensitive_idents(text: str) -> list[str]:
+    """Πλήρη ονόματα πεδίων (π.χ. card_number) από την περιγραφή· λέξεις προτάσεων με κεφαλαίο αγνοούνται."""
+    out = set()
+    for ident in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", str(text)):
+        if ident[0].isupper() and ident.isalpha():
+            continue  # π.χ. «Pin a post»: αρχή πρότασης, όχι όνομα πεδίου
+        if _sensitive_in(ident):
+            out.add(ident)
+    return sorted(out)
+
+
 def analyze_tool(tool: dict) -> dict:
     risk, risk_reason = classify_risk(tool)
     untrusted, untrusted_reason = _returns_untrusted(tool, risk)
     sparams = sorted(p for p in (tool.get("params") or {}) if _sensitive_in(p))
-    sfields = sorted(f for f in _sensitive_in(tool.get("description", "")) if f not in sparams)
+    sfields = [f for f in _sensitive_idents(tool.get("description", "")) if f not in sparams]
     reason_sensitive = ("ευαίσθητα ονόματα παραμέτρων: " + ", ".join(sparams) if sparams else "") + \
                        ("; " if sparams and sfields else "") + \
                        ("η περιγραφή αναφέρει ευαίσθητα πεδία: " + ", ".join(sfields) if sfields else "")

@@ -94,7 +94,7 @@ class UntrustedAndSensitiveTests(unittest.TestCase):
         self.assertEqual(a["sensitive_params"], ["apiKey", "cardNumber", "new_password"])
         b = analyze_tool(T("get_account", "Returns owner_id, iban, balance and card_number.", ["account_id"]))
         self.assertEqual(b["sensitive_params"], [])
-        self.assertEqual(b["sensitive_fields"], ["card", "iban"])
+        self.assertEqual(b["sensitive_fields"], ["card_number", "iban"])
         self.assertEqual(analyze_tool(T("list_courses"))["sensitive_fields"], [])
         self.assertEqual(analyze_tool(T("pin_post", "Pin a post", ["post_id"]))["sensitive_params"], [])  # "pin" εντός λέξης όχι
         self.assertEqual(analyze_tool(T("x", "", ["pin"]))["sensitive_params"], ["pin"])
