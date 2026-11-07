@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
 
 from copilot.llm import FakeLLM, GeminiLLM, LLMError, ReplayLLM, default_llm, extract_json  # noqa: E402
 
-KEY = "AIzaSyFAKE-KEY-FOR-TESTS-0123456789"
+KEY = "FAKE-TEST-KEY-0123456789-NOT-A-REAL-KEY"
 
 
 class FakeResp:

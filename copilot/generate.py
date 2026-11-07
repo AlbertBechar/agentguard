@@ -73,6 +73,7 @@ def generate_policy(intake: dict, analysis: dict, decisions: dict, schema: Schem
                     max_fix: int = MAX_FIX_ATTEMPTS) -> dict:
     issues: list[dict] = []
     policy, assumptions, open_questions, attempts, raw = None, [], [], 0, None
+    last_errors: list[str] = []
     if llm is not None:
         system = prompts.policy_system()
         user = prompts.policy_user(intake, analysis, decisions["qa"])
@@ -94,6 +95,7 @@ def generate_policy(intake: dict, analysis: dict, decisions: dict, schema: Schem
                 break
             cand, assumptions, open_questions = _unpack(data)
             errors = ["η απάντηση δεν είναι αντικείμενο policy"] if cand is None else _errors_of(_prepare(cand, intake, decisions))
+            last_errors = errors
             if cand is not None and raw is None:
                 raw = copy.deepcopy(cand)
             if not errors:
@@ -108,6 +110,12 @@ def generate_policy(intake: dict, analysis: dict, decisions: dict, schema: Schem
                                             "errors": errors})
     source = "llm"
     if policy is None:
+        unsafe = [e for e in last_errors if e.startswith("lookups")]
+        if unsafe:
+            # SQL που παραβιάζει τους κανόνες ασφαλείας ΔΕΝ περνά σιωπηλά: μπλοκάρει την έγκριση μέχρι να το δει άνθρωπος
+            issues.append(issue("error", "llm.unsafe_lookup",
+                                f"Το LLM πρότεινε lookup SQL που παραβιάζει τους κανόνες ασφαλείας ({unsafe[0]}) και δεν διορθώθηκε. "
+                                "Χρησιμοποιήθηκε offline πολιτική, αλλά η έγκριση μπλοκάρεται μέχρι να ελεγχθεί το αίτημα."))
         source = "offline"
         policy = build_offline_policy(intake, analysis, decisions)
         assumptions, open_questions = [], []

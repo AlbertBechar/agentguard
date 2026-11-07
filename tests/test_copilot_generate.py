@@ -325,7 +325,7 @@ class LookupCheckTests(unittest.TestCase):
 
     def issues_for(self, policy, **setup_kw):
         intake, analysis, info = setup(**setup_kw)
-        res = generate_policy(intake, analysis, decide(intake, analysis, CONFIRM_ALL), info, FakeLLM([{"policy": policy}]))
+        res = generate_policy(intake, analysis, decide(intake, analysis, CONFIRM_ALL), info, FakeLLM([{"policy": policy}] * 3))
         return res
 
     def test_valid_lookups_pass_validation_and_explain(self):
@@ -346,8 +346,8 @@ class LookupCheckTests(unittest.TestCase):
         for name, sql in cases.items():
             with self.subTest(name=name):
                 res = self.issues_for(self.lookup_policy(sql=sql))
-                self.assertEqual(res["source"], "llm" if False else res["source"])
-                self.assertTrue(has_errors(res["issues"]) or res["source"] == "offline", name)
+                self.assertIn("llm.unsafe_lookup", codes(res["issues"], "error"), name)   # επιμονή στο επικίνδυνο SQL => error
+                self.assertEqual(res["source"], "offline")                                  # και ασφαλής offline πολιτική
 
     def test_unknown_table_and_column_are_errors(self):
         res = self.issues_for(self.lookup_policy(sql="SELECT owner_id FROM ghosts WHERE id = :account_id"))
