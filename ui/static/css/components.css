@@ -251,3 +251,14 @@ details.exp > .exp-body { padding: 0 1.2rem 1.2rem; }
   .step .lbl { display: none; }
   .step[aria-current="step"] .lbl { display: inline; }
 }
+
+/* ---------- Studio: τίτλος σελίδας, markdown, βοηθητικά ---------- */
+[hidden] { display: none !important; }
+.h1 { font-size: clamp(1.9rem, 1rem + 2vw, 2.6rem); font-weight: 850; letter-spacing: -.02em; line-height: 1.1; }
+.md > * + * { margin-top: .9rem; }
+.md h3, .md h4, .md h5 { margin-top: 1.4rem; font-weight: 700; }
+.md h3 { font-size: 1.4rem; } .md h4 { font-size: 1.2rem; } .md h5 { font-size: 1.05rem; }
+.md ul, .md ol { padding-left: 1.4rem; }
+.md li + li { margin-top: .35rem; }
+.card h2 { font-size: clamp(1.25rem, 1rem + .8vw, 1.6rem); }
+.card .code, .card .table-wrap { margin-top: .25rem; }

@@ -31,7 +31,10 @@ from agentguard.lookups import LookupContext  # noqa: E402
 from app.policy_engine import PolicyEngine, validate_policy  # noqa: E402
 from copilot.dbschema import SchemaError  # noqa: E402
 from copilot.evaluate import answers_for  # noqa: E402
+from copilot import prompts  # noqa: E402
+from copilot.heuristics import analyze_tools  # noqa: E402
 from copilot.llm import LLMError, ReplayLLM, default_llm  # noqa: E402
+from copilot.questions import MAX_QUESTIONS, build_questions  # noqa: E402
 from copilot.session import ApprovalRefused, CopilotSession  # noqa: E402
 from copilot.tooldefs import ToolDefError, load_tools  # noqa: E402
 from examples.demobank import run_demo  # noqa: E402
@@ -344,13 +347,34 @@ def _public_questions(entry: _Entry) -> list[dict]:
     return out
 
 
+def _questions_stage(entry: _Entry) -> dict | None:
+    """Το στάδιο «ερωτήσεις» ΑΚΡΙΒΩΣ όπως θα σταλεί. Το session.dry_run() του Copilot το δείχνει με «max 8» και κενό
+    «already_asked», ενώ η πραγματική κλήση (copilot/questions.py::build_questions) ζητά μόνο όσες θέσεις περισσεύουν και
+    στέλνει τις ντετερμινιστικές ερωτήσεις ως «already_asked». Εδώ ξαναχτίζεται με τις ίδιες δημόσιες συναρτήσεις.
+    None = δεν θα γίνει καθόλου κλήση (οι ντετερμινιστικές ερωτήσεις γεμίζουν το όριο)."""
+    intake = entry.session.intake
+    analysis = analyze_tools(intake["tools"])
+    deterministic = build_questions(intake, analysis, None)
+    room = MAX_QUESTIONS - len(deterministic)
+    if room <= 0:
+        return None
+    return {"stage": "questions", "system": prompts.QUESTIONS_SYSTEM,
+            "user": prompts.questions_user(intake, analysis, room, [q["text"] for q in deterministic])}
+
+
 def _public_dry_run(entry: _Entry) -> list[dict]:
-    stages = []
-    for st in entry.session.dry_run():
+    stages = [st for st in entry.session.dry_run() if st.get("stage") != "questions"]
+    q = _questions_stage(entry)
+    stages = ([q] if q else []) + stages
+    out = []
+    for st in stages:
         system, c1 = _cut(str(st.get("system", "")))
         user, c2 = _cut(str(st.get("user", "")))
-        stages.append({"stage": st.get("stage", ""), "system": system, "user": user, "truncated": c1 or c2})
-    return stages
+        out.append({"stage": st.get("stage", ""), "system": system, "user": user, "truncated": c1 or c2})
+    if q is None:
+        out.insert(0, {"stage": "questions", "system": "", "truncated": False,
+                       "user": "(Δεν θα σταλεί τίποτα για τις ερωτήσεις: οι ντετερμινιστικές ερωτήσεις καλύπτουν ήδη το όριο.)"})
+    return out
 
 
 def create_session(body: dict) -> dict:
@@ -386,14 +410,35 @@ def create_session(body: dict) -> dict:
         _check_replay_data(session.intake)
     entry = _Entry(sid, session, mode, llm if mode != "offline" else None, out_dir, preset)
     with entry.lock:
-        questions = _public_questions(entry)
         res = {"sid": sid, "mode": mode, "llm_label": session.state["llm_label"], "preset": preset,
-               "dry_run": _public_dry_run(entry), "questions": questions}
-        if mode == "replay":
-            by_id = {q["id"]: q for q in questions}
-            res["recorded_answers"] = {qid: ans for qid, ans in answers_for(session).items() if qid in by_id}
+               "dry_run": _public_dry_run(entry), "questions": None}
+        if mode != "live":          # στο live ΔΕΝ καλείται το LLM πριν ο χρήστης δει το «Τι θα σταλεί στο AI» (βλ. get_questions)
+            res.update(_questions_payload(entry))
     STORE.add(entry)
     return res
+
+
+def _questions_payload(entry: _Entry) -> dict:
+    questions = _public_questions(entry)
+    out = {"questions": questions}
+    if entry.mode == "replay":
+        by_id = {q["id"] for q in questions}
+        out["recorded_answers"] = {qid: ans for qid, ans in answers_for(entry.session).items() if qid in by_id}
+    return out
+
+
+def get_questions(sid: str) -> dict:
+    """Οι ερωτήσεις. Στο live εδώ γίνεται (για πρώτη φορά) η κλήση προς το LLM."""
+    entry = STORE.get(sid)
+    with entry.lock:
+        return _questions_payload(entry)
+
+
+def get_dry_run(sid: str) -> list[dict]:
+    """ΑΚΡΙΒΩΣ ό,τι θα σταλεί στο LLM με τις τρέχουσες απαντήσεις. Δεν καλεί LLM."""
+    entry = STORE.get(sid)
+    with entry.lock:
+        return _public_dry_run(entry)
 
 
 # ---------------------------------------------------------------------------

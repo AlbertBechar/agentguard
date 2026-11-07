@@ -218,6 +218,42 @@ class SessionFlow(UITestCase):
         self.assertIn("Χωρίς AI", cm.exception.message)
         self.assertNotIn("AIza", cm.exception.message)
 
+    def test_live_sends_nothing_to_the_llm_until_the_user_has_seen_the_dry_run(self):
+        from copilot.llm import FakeLLM
+        fake = FakeLLM(lambda system, user, kind: {"questions": []})
+        with mock.patch.object(service, "default_llm", return_value=fake):
+            j = service.create_session(clinic_body("live"))
+            self.assertEqual(fake.sent, [], "το create_session δεν πρέπει να καλεί το LLM")
+            self.assertIsNone(j["questions"])
+            self.assertEqual([d["stage"] for d in j["dry_run"]], ["questions", "policy", "scenarios"])
+            self.assertEqual(service.get_dry_run(j["sid"])[0]["stage"], "questions")
+            self.assertEqual(fake.sent, [], "ούτε το dry-run")
+            q = service.get_questions(j["sid"])
+            self.assertTrue(q["questions"])
+            self.assertEqual(len(fake.sent), 1, "οι ερωτήσεις είναι η πρώτη (και μοναδική ως εδώ) κλήση")
+            self.assertEqual(fake.sent[0]["user"], service.get_dry_run(j["sid"])[0]["user"])   # ό,τι έδειξε το dry-run είναι ό,τι στάλθηκε
+            self.assertNotIn("recorded_answers", q)
+            # και τα επόμενα στάδια: ό,τι έδειξε το dry-run (πρώτη προσπάθεια) είναι ό,τι στάλθηκε
+            shown = {d["stage"]: d["user"] for d in service.get_dry_run(j["sid"])}
+            service.generate(j["sid"])
+            sent = [s["user"] for s in fake.sent]
+            self.assertIn(shown["policy"], sent)
+            self.assertIn(shown["scenarios"], sent)
+
+    def test_dry_run_questions_stage_is_skipped_when_no_llm_call_will_happen(self):
+        """GitHub MCP: 133 εργαλεία => οι ντετερμινιστικές ερωτήσεις γεμίζουν το όριο, δεν γίνεται κλήση για ερωτήσεις."""
+        from copilot.llm import FakeLLM
+        fake = FakeLLM(lambda system, user, kind: {"questions": []})
+        body = clinic_body("live", tools=(FIX / "public" / "github_mcp_tools.json").read_text(encoding="utf-8"),
+                           db_schema=None, context_attributes=None)
+        with mock.patch.object(service, "default_llm", return_value=fake):
+            j = service.create_session(body)
+            first = j["dry_run"][0]
+            self.assertEqual(first["stage"], "questions")
+            if "Δεν θα σταλεί τίποτα" in first["user"]:
+                service.get_questions(j["sid"])
+                self.assertEqual(fake.sent, [])
+
     def test_offline_clinic_flow_end_to_end(self):
         j = service.create_session(clinic_body("offline"))
         self.assertEqual((j["preset"], j["llm_label"]), ("democlinic", "offline"))

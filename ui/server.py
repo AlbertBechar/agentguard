@@ -128,6 +128,16 @@ def api_session(body: dict = Body(...)):
     return service.create_session(body)
 
 
+@app.post("/api/session/{sid}/questions")
+def api_questions(sid: str):
+    return service.get_questions(sid)
+
+
+@app.get("/api/session/{sid}/dry-run")
+def api_dry_run(sid: str):
+    return {"dry_run": service.get_dry_run(sid)}
+
+
 @app.post("/api/session/{sid}/answers")
 def api_answers(sid: str, body: dict = Body(...)):
     return service.submit_answers(sid, body.get("answers"))
