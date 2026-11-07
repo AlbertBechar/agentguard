@@ -481,8 +481,8 @@ def write_results(path, attacks, normal, a, b, sa, sb, py_version):
     out.append("- Μετά την ανάγνωση μη-έμπιστου περιεχομένου, **κάθε** επικίνδυνη ενέργεια (ακόμα και νόμιμη) "
                "θέλει έγκριση από άνθρωπο. Αυτό είναι κόστος χρηστικότητας και όχι λάθος.")
     out.append("- Το tool layer είναι ψεύτικο: δεν δοκιμάζουμε τον πραγματικό κώδικα του `tools.py`.")
-    out.append("- Το τρέξιμο γράφει γραμμές στους πίνακες `guard_events` και `guard_approvals` της βάσης δοκιμών. "
-               "Δεν το τρέχουμε ποτέ πάνω σε πραγματική βάση.\n")
+    out.append("- Το benchmark δουλεύει σε **προσωρινό αντίγραφο** της `test.db` (γράφει εκεί γεγονότα και "
+               "εγκρίσεις του Guard) και το σβήνει στο τέλος. Η `test.db` δεν αλλάζει.\n")
 
     out.append(LIVE_MARKER)
     out.append("")
@@ -498,10 +498,28 @@ def main():
     write = "--no-write" not in sys.argv
 
     db_path = os.environ.get("DB_PATH", "")
-    if not list_only and os.path.basename(db_path) != "test.db" and "--force" not in sys.argv:
-        print("Refusing to run: the benchmark writes to the database. DB_PATH=%r is not 'test.db'." % db_path)
+    if os.path.basename(db_path) != "test.db" and "--force" not in sys.argv:
+        print("Refusing to run: DB_PATH=%r is not a 'test.db'. The benchmark is meant for the seeded test database." % db_path)
+        sys.exit(2)
+    if not os.path.exists(db_path):
+        print("Database %r not found. Create it first: DB_PATH=%s python -m app.seed --reset" % (db_path, db_path))
         sys.exit(2)
 
+    # Work on a TEMPORARY COPY of the database, so the benchmark never leaves
+    # events / approvals behind in test.db (other people's tests read those tables).
+    import shutil
+    import tempfile
+    tmp_dir = tempfile.mkdtemp(prefix="agentguard-bench-")
+    tmp_db = os.path.join(tmp_dir, "bench.db")
+    shutil.copyfile(db_path, tmp_db)
+    os.environ["DB_PATH"] = tmp_db
+    try:
+        _run(list_only, write)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def _run(list_only, write):
     from app.app import app
     with app.app_context():
         attacks, normal = build_cases()
