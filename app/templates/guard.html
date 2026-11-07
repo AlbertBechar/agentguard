@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Guard · Athena eClass{% endblock %}
+{% block content %}
+{#- Όλα τα δεδομένα εδώ (ειδικά τα args) μπορεί να προέρχονται από επιτιθέμενο.
+    Γι' αυτό ΠΟΤΕ |safe: η Jinja τα κάνει escape και εμφανίζονται ως απλό κείμενο. -#}
+<style>
+  .guard-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .guard-actions form { margin: 0; }
+  .btn-reject { background: #b42318; }
+  .btn-reject:hover { background: #8a1a12; }
+  .act { font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+  .act-allow { background: #e6f4ea; color: #1e6b34; }
+  .act-deny { background: #fdecea; color: #a12a1f; }
+  .act-approve { background: #fff4e0; color: #8a5300; }
+</style>
+
+<h1>Guard</h1>
+<p class="muted">Εδώ εγκρίνεις ή απορρίπτεις ενέργειες που ζήτησε το chatbot αφού διάβασε περιεχόμενο
+  γραμμένο από άλλους (forum, μηνύματα, υποβολές). Το chatbot δεν μπορεί να πατήσει αυτά τα κουμπιά.</p>
+
+<h2>Εκκρεμή αιτήματα</h2>
+{% if pending %}
+  {% for p in pending %}
+  <section class="card">
+    <div><b>#{{ p.id }}</b> · <code>{{ p.tool }}</code> · <small class="muted">{{ p.ts }}</small>
+      {% if me.role == 'admin' and p.user_id != me.id %}<small class="muted">· χρήστης {{ p.user_id }}</small>{% endif %}</div>
+    <div class="muted">Αιτιολογία: {{ p.reason }}</div>
+    <pre class="pre">{{ p.args_pretty }}</pre>
+    <div class="guard-actions">
+      <form method="post" action="{{ url_for('guard.approve', approval_id=p.id) }}">
+        <button type="submit">Έγκριση</button>
+      </form>
+      <form method="post" action="{{ url_for('guard.reject', approval_id=p.id) }}">
+        <button type="submit" class="btn-reject">Απόρριψη</button>
+      </form>
+    </div>
+  </section>
+  {% endfor %}
+{% else %}
+  <p class="muted">Δεν υπάρχουν εκκρεμή αιτήματα.</p>
+{% endif %}
+
+<h2>Τελευταία γεγονότα</h2>
+{% if events %}
+<section class="card scroll">
+<table>
+  <tr><th>Ώρα</th>{% if me.role == 'admin' %}<th>Χρήστης</th>{% endif %}<th>Εργαλείο</th><th>Απόφαση</th><th>Αιτιολογία</th><th>Tainted</th><th>Score</th></tr>
+  {% for e in events %}
+  <tr>
+    <td><small>{{ e.ts }}</small></td>
+    {% if me.role == 'admin' %}<td>{{ e.username or e.user_id }}</td>{% endif %}
+    <td><code>{{ e.tool }}</code></td>
+    <td><span class="act act-{{ e.action if e.action in ('allow', 'deny', 'approve') else 'deny' }}">{{ e.action }}</span></td>
+    <td><small>{{ e.reason }}</small></td>
+    <td>{{ 'ναι' if e.tainted else 'όχι' }}</td>
+    <td>{{ '%.2f' | format(e.injection_score or 0) }}</td>
+  </tr>
+  {% endfor %}
+</table>
+</section>
+{% else %}
+  <p class="muted">Δεν υπάρχουν γεγονότα.</p>
+{% endif %}
+{% endblock %}

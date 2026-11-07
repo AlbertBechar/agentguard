@@ -147,5 +147,92 @@ class ResolveTest(unittest.TestCase):
         self.assertEqual(approvals.resolve(999999, self.admin, True)["status"], "failed")
 
 
+class GuardPageTest(unittest.TestCase):
+    """Η σελίδα /guard με τον Flask test client (ένας «ψεύτικος browser»)."""
+
+    @classmethod
+    def setUpClass(cls):
+        # Προσωρινό register ΜΟΝΟ για τα τεστ. Το πραγματικό το κάνει ο P1 στο app.py.
+        if "guard" not in app.blueprints:
+            from app.guard_ui import bp
+            app.register_blueprint(bp)
+
+    def setUp(self):
+        self.ctx = app.app_context()
+        self.ctx.push()
+        approvals.ensure_tables()
+        execute("DELETE FROM guard_approvals")
+        self.teacher = _user("kpapadopoulos")
+        self.student = _user("sdi2400001")
+        self.client = app.test_client()
+        self.fake_tool = mock.Mock(return_value={"ok": True})
+        self._patches = [mock.patch("app.approvals.call_tool", self.fake_tool),
+                         mock.patch.dict(sys.modules, {"app.eclass_policy": FakePolicy("allow")}),
+                         mock.patch.object(app_pkg, "eclass_policy", FakePolicy("allow"), create=True)]
+        for p in self._patches:
+            p.start()
+
+    def tearDown(self):
+        for p in reversed(self._patches):
+            p.stop()
+        self.ctx.pop()
+
+    def login_as(self, user):
+        # Γράφουμε κατευθείαν στο session (το cookie σύνδεσης), αντί να περάσουμε από τη φόρμα login.
+        with self.client.session_transaction() as s:
+            s["user_id"] = user["id"]
+
+    def test_not_logged_in_redirects(self):
+        r = self.client.get("/guard")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/login", r.headers["Location"])
+        self.assertEqual(self.client.get("/guard/api/pending").status_code, 401)
+
+    def test_owner_sees_request(self):
+        aid = approvals.create_pending(self.teacher, "grade_submission", {"submission_id": 7, "grade": 10}, "tainted")
+        self.login_as(self.teacher)
+        html = self.client.get("/guard").get_data(as_text=True)
+        self.assertIn(f"#{aid}", html)
+        self.assertIn("grade_submission", html)
+        self.assertIn(f"/guard/approve/{aid}", html)
+        api = self.client.get("/guard/api/pending").get_json()
+        self.assertEqual(api["count"], 1)
+
+    def test_other_student_does_not_see_it(self):
+        approvals.create_pending(self.teacher, "grade_submission", {"submission_id": 7, "grade": 10}, "tainted")
+        self.login_as(self.student)
+        html = self.client.get("/guard").get_data(as_text=True)
+        self.assertNotIn("grade_submission", html)
+
+    def test_approve_by_other_user_is_403(self):
+        aid = approvals.create_pending(self.teacher, "grade_submission", {"submission_id": 7, "grade": 10}, "tainted")
+        self.login_as(self.student)
+        r = self.client.post(f"/guard/approve/{aid}")
+        self.assertEqual(r.status_code, 403)
+        self.fake_tool.assert_not_called()
+
+    def test_owner_approve_runs_and_redirects(self):
+        aid = approvals.create_pending(self.teacher, "grade_submission", {"submission_id": 7, "grade": 10}, "tainted")
+        self.login_as(self.teacher)
+        r = self.client.post(f"/guard/approve/{aid}", follow_redirects=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(f"Αίτημα #{aid}: approved", r.get_data(as_text=True))
+        self.fake_tool.assert_called_once()
+
+    def test_cross_site_post_is_blocked(self):
+        aid = approvals.create_pending(self.teacher, "grade_submission", {"submission_id": 7, "grade": 10}, "tainted")
+        self.login_as(self.teacher)
+        r = self.client.post(f"/guard/approve/{aid}", headers={"Sec-Fetch-Site": "cross-site"})
+        self.assertEqual(r.status_code, 403)
+        self.fake_tool.assert_not_called()
+
+    def test_args_are_escaped(self):
+        approvals.create_pending(self.teacher, "send_message", {"body": "<script>alert(1)</script>"}, "tainted")
+        self.login_as(self.teacher)
+        html = self.client.get("/guard").get_data(as_text=True)
+        self.assertNotIn("<script>alert(1)</script>", html)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
+
+
 if __name__ == "__main__":
     unittest.main()
