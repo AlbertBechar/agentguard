@@ -277,3 +277,19 @@ details.exp > .exp-body { padding: 0 1.2rem 1.2rem; }
 .decision.deny .verdict { color: var(--text); }
 .decision.ask { border-color: var(--amber); background: var(--amber-tint); }
 .decision.ask .verdict { color: var(--amber); }
+
+/* ---------- Επίθεση ζωντανά ---------- */
+.big-vs { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem 1.2rem; font-size: clamp(2.6rem, 1.2rem + 5vw, 5rem); line-height: 1; }
+.big-vs .arrow { color: var(--line-strong); display: inline-flex; }
+.between-cols { justify-content: space-between; }
+.attack-list { display: grid; gap: .75rem; }
+.attack-head, .attack-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.attack-head { padding-inline: 1.1rem; font-weight: 700; color: var(--text-2); }
+.attack-row { border: 1px solid var(--line); border-radius: var(--r-md); padding: 1rem 1.1rem; background: var(--card-glass); display: grid; gap: .7rem; animation: rise .35s var(--ease) both; }
+.attack-top { display: flex; flex-wrap: wrap; gap: .5rem .6rem; align-items: center; font-weight: 600; }
+.attack-row[hidden] { display: none; }
+.note-honest { color: var(--amber); display: flex; gap: .4rem; align-items: flex-start; }
+.note-honest svg { flex: none; margin-top: .25rem; }
+@media (max-width: 720px) { .attack-head, .attack-cols { grid-template-columns: 1fr; } .attack-head { display: none; } }
+.table-wrap.nowrap th, .table-wrap.nowrap td { white-space: nowrap; overflow-wrap: normal; }
+.table-wrap.nowrap table { min-width: 0; }

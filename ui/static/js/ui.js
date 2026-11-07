@@ -213,6 +213,10 @@ export function fmtTime(iso) {
   try { return new Date(iso).toLocaleString("el-GR", { dateStyle: "medium", timeStyle: "short" }); } catch { return String(iso); }
 }
 
+export function fmtClock(iso) {
+  try { return new Date(iso).toLocaleTimeString("el-GR"); } catch { return String(iso); }
+}
+
 export function setBusy(button, busy, label) {
   if (!button) return;
   button.disabled = !!busy;

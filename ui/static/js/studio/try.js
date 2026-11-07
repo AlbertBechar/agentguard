@@ -1,6 +1,6 @@
 // studio/try.js -- βήμα «Δοκίμασε»: τι θα αποφάσιζε ο φρουρός για μια κλήση. Δεν εκτελείται τίποτα, μόνο η απόφαση της μηχανής κανόνων.
 import { api } from "../api.js";
-import { el, errorBox, fmtTime, icon, waiting } from "../ui.js";
+import { el, errorBox, fmtClock, icon, waiting } from "../ui.js";
 import { S, save } from "./state.js";
 
 const VERDICT = {
@@ -38,11 +38,11 @@ function decisionCard(r) {
 
 function historyTable(history) {
   if (!history || !history.length) return el("p", { class: "muted", text: "Εδώ θα εμφανίζονται οι τελευταίες 10 δοκιμές." });
-  return el("div", { class: "table-wrap" }, el("table", null,
+  return el("div", { class: "table-wrap nowrap" }, el("table", null,
     el("thead", null, el("tr", null, ["Ώρα", "Ρόλος", "Εργαλείο", "Απόφαση", "Πολιτική"].map((h) => el("th", { text: h })))),
     el("tbody", null, history.map((h) => {
       const [, ic, label] = VERDICT[h.decision] || VERDICT.deny;
-      return el("tr", null, el("td", { text: fmtTime(h.at) }), el("td", { text: h.role }), el("td", { class: "tool", text: h.tool + (h.after_untrusted ? " (μετά από μη έμπιστο κείμενο)" : "") }),
+      return el("tr", null, el("td", { text: fmtClock(h.at) }), el("td", { text: h.role }), el("td", { class: "tool", text: h.tool + (h.after_untrusted ? " ⚠ μετά από μη έμπιστο" : "") }),
         el("td", null, el("span", { class: `cell ${h.decision === "allow" ? "cell-allow" : h.decision === "deny" ? "cell-deny" : "cell-cond"}` }, icon(ic, { size: 14 }), label)),
         el("td", { text: h.stage === "approved" ? "εγκεκριμένη" : "πρόχειρη" }));
     }))));

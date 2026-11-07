@@ -40,7 +40,9 @@ function paintEngine(engine) {
   const badge = $("#ai-badge");
   if (!badge) return;
   badge.dataset.engine = engine || "none";
-  $("#ai-badge-text").textContent = ENGINE_LABEL[engine] || "AI: δεν επιλέχθηκε";
+  const st = store.get("status") || {};
+  const idle = st.live_available ? "Gemini διαθέσιμο" : st.replay_available ? "Replay διαθέσιμο" : "Χωρίς AI";
+  $("#ai-badge-text").textContent = ENGINE_LABEL[engine] || idle;
   badge.title = {
     replay: "Καταγεγραμμένη πραγματική εκτέλεση Gemini· λειτουργεί χωρίς δίκτυο (μόνο DemoBank).",
     live: "Ζωντανές κλήσεις προς το Gemini με το κλειδί του περιβάλλοντος.",
@@ -53,7 +55,7 @@ async function loadStatus() {
   try {
     const st = await api.status();
     store.set("status", st);
-    if (!store.get("engine")) store.set("engine", st.live_available ? "live" : st.replay_available ? "replay" : "offline");
+    paintEngine(store.get("engine") || null);
   } catch {
     paintEngine(null);
   }
@@ -67,8 +69,12 @@ function setPresent(on) {
   mem.set("present", on);
 }
 
+const TEXT_INPUTS = new Set(["text", "search", "email", "url", "tel", "password", "number"]);
+
 function isTyping(t) {
-  return t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
+  if (!t) return false;
+  if (t.isContentEditable || t.tagName === "TEXTAREA" || t.tagName === "SELECT") return true;
+  return t.tagName === "INPUT" && TEXT_INPUTS.has((t.getAttribute("type") || "text").toLowerCase());
 }
 
 function init() {

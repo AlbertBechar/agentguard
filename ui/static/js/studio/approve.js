@@ -66,7 +66,7 @@ export async function renderApprove(host, studio) {
     btn.disabled = true; btn.setAttribute("aria-busy", "true");
     try {
       const out = await api.approve(S.sid, name.value.trim(), check.checked ? "yes" : "no");
-      S.approved = out; S.maxStep = Math.max(S.maxStep, 3); save();
+      S.approved = out; S.maxStep = Math.max(S.maxStep, 5); save();   // μετά την υπογραφή είναι προσβάσιμα και τα επόμενα βήματα
       store.set("engine", S.mode);
       host.replaceChildren(approvedView(studio));
     } catch (e) {
