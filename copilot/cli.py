@@ -107,11 +107,16 @@ def cmd_answer(args) -> int:
                 _out(f"    Γιατί ρωτάμε: {q['why']}")
             for i, opt in enumerate(q["options"], 1):
                 _out(f"    {i}) {opt}")
-            _out(f"    (Enter = προεπιλογή: {q['default']})")
+            _out(f"    (Enter = προεπιλογή: {q['default']})" + ("  [πολλαπλή επιλογή: π.χ. 4,5]" if q.get("multi") else ""))
             raw = input("    > ").strip()
             if not raw:
                 continue
-            answers[q["id"]] = q["options"][int(raw) - 1] if raw.isdigit() and 0 < int(raw) <= len(q["options"]) else raw
+            parts = [x.strip() for x in raw.split(",")] if q.get("multi") else [raw]
+            if all(x.isdigit() and 0 < int(x) <= len(q["options"]) for x in parts):
+                picked = [q["options"][int(x) - 1] for x in parts]
+                answers[q["id"]] = picked[0] if len(picked) == 1 else picked      # πολλαπλή επιλογή: «2,4» => λίστα
+            else:
+                answers[q["id"]] = raw
     result = session.answer(answers)
     _save(session, out)
     _out(f"[OK] {len(result['accepted'])} απαντήσεις αποθηκεύτηκαν, {len(questions) - len(result['accepted'])} με προεπιλογή")

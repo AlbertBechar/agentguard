@@ -20,6 +20,7 @@ _TEXTS = {
                   "user, admin"),
         "allow": ("Επιτρέπεται το εργαλείο «{tool}» ({risk}) σε κάποιον ρόλο;",
                   "Είναι {why}. Από προεπιλογή απαγορεύεται σε όλους."),
+        "opt_role": "Ο ρόλος «{role}»", "only_roles": "Μόνο οι ρόλοι: {roles}",
         "opt_none": "Όχι, σε κανέναν", "opt_priv": "Μόνο στον πιο προνομιούχο ρόλο (π.χ. admin)",
         "opt_all": "Ναι, σε όλους τους ρόλους",
         "more": ("Πώς να αντιμετωπιστούν τα εργαλεία: {tools};", "Είναι επικίνδυνα ή στέλνουν δεδομένα προς τα έξω."),
@@ -43,6 +44,7 @@ _TEXTS = {
     "en": {
         "roles": ("Which user roles exist in your application?", "The policy grants permissions per role.", "user, admin"),
         "allow": ("May any role call the tool '{tool}' ({risk})?", "It is {why}. By default it is denied to everyone."),
+        "opt_role": "The role '{role}'", "only_roles": "Only these roles: {roles}",
         "opt_none": "No, nobody", "opt_priv": "Only the most privileged role (e.g. admin)", "opt_all": "Yes, all roles",
         "more": ("How should these tools be treated: {tools}?", "They are dangerous or send data outside."),
         "sensitive": ("Which fields are sensitive and must be hidden from anyone not entitled to see them?",
@@ -70,6 +72,16 @@ def _norm(text: str) -> str:
     return re.sub(r"\W+", " ", str(text).casefold()).strip()
 
 
+def _allow_options(t: dict, roles) -> tuple[list[str], dict]:
+    """Επιλογές της ερώτησης «ποιοι ρόλοι επιτρέπονται»: τα 3 κλασικά + ΕΝΑ κουτί ανά ρόλο (πολλαπλή επιλογή).
+
+    Οι πρώτες 3 θέσεις μένουν σταθερές (none / privileged / all)· οι ρόλοι έρχονται μετά, ώστε να λέγονται ΟΝΟΜΑΤΙΣΤΙΚΑ
+    (π.χ. «teller» ΚΑΙ «admin»). Επιστρέφει (options, {κείμενο_επιλογής: ρόλος}).
+    """
+    role_opts = {t["opt_role"].format(role=r): r for r in (roles or [])}
+    return [t["opt_none"], t["opt_priv"], t["opt_all"], *role_opts], role_opts
+
+
 def build_deterministic(intake: dict, analysis: dict) -> list[dict]:
     t = _t(intake.get("language", "el"))
     qs: list[dict] = []
@@ -77,7 +89,7 @@ def build_deterministic(intake: dict, analysis: dict) -> list[dict]:
         text, why, default = t["roles"]
         qs.append({"id": "", "key": "roles", "text": text, "why": why, "options": [], "default": default})
 
-    allow_opts = [t["opt_none"], t["opt_priv"], t["opt_all"]]
+    allow_opts, role_opts = _allow_options(t, intake.get("roles"))
     risky = [n for n, a in analysis.items() if a["risk"] in ("dangerous", "external")]
     risky.sort(key=lambda n: (analysis[n]["risk"] != "dangerous", n))   # πρώτα τα επικίνδυνα
     for name in risky:
@@ -85,7 +97,7 @@ def build_deterministic(intake: dict, analysis: dict) -> list[dict]:
         qs.append({"id": "", "key": "allow_tool", "tool": name,
                    "text": t["allow"][0].format(tool=name, risk=t["risk_words"][risk]),
                    "why": t["allow"][1].format(why=t["why_words"][risk]),
-                   "options": list(allow_opts), "default": t["opt_none"]})
+                   "options": list(allow_opts), "role_options": dict(role_opts), "multi": True, "default": t["opt_none"]})
 
     sens = sorted({f for a in analysis.values() for f in a["sensitive_params"] + a["sensitive_fields"]})
     if sens:
@@ -109,7 +121,7 @@ def build_deterministic(intake: dict, analysis: dict) -> list[dict]:
     return qs
 
 
-def _cap(qs: list[dict], limit: int, lang: str) -> list[dict]:
+def _cap(qs: list[dict], limit: int, lang: str, roles=None) -> list[dict]:
     """Αν οι ντετερμινιστικές ξεπερνούν το όριο, οι τελευταίες allow_tool συγχωνεύονται σε μία."""
     if len(qs) <= limit:
         return qs
@@ -119,9 +131,10 @@ def _cap(qs: list[dict], limit: int, lang: str) -> list[dict]:
     keep = max(limit - len(others) - 1, 0)
     extra = allow[keep:]
     extra_names = {q["tool"] for q in extra}
+    options, role_opts = _allow_options(t, roles)
     merged = {"id": "", "key": "allow_tools_more", "tools": [q["tool"] for q in extra],
               "text": t["more"][0].format(tools=", ".join(q["tool"] for q in extra)), "why": t["more"][1],
-              "options": [t["opt_none"], t["opt_priv"], t["opt_all"]], "default": t["opt_none"]}
+              "options": options, "role_options": role_opts, "multi": True, "default": t["opt_none"]}
     out, added = [], False
     for q in qs:                       # κρατάμε τη σειρά· οι «περισσευούμενες» γίνονται μία ερώτηση
         if q["key"] == "allow_tool" and q["tool"] in extra_names:
@@ -152,7 +165,7 @@ def _clean_llm_question(raw, lang: str) -> dict | None:
 def build_questions(intake: dict, analysis: dict, llm=None) -> list[dict]:
     """Έως 8 ερωτήσεις: πρώτα οι ντετερμινιστικές, μετά (αν υπάρχει LLM) οι δικές του, χωρίς διπλότυπα."""
     lang = intake.get("language", "el")
-    qs = _cap(build_deterministic(intake, analysis), MAX_QUESTIONS, lang)
+    qs = _cap(build_deterministic(intake, analysis), MAX_QUESTIONS, lang, intake.get("roles"))
     room = MAX_QUESTIONS - len(qs)
     if llm is not None and room > 0:
         try:
@@ -199,13 +212,48 @@ def _level(answer, options_codes: dict, default: str) -> str:
     return "none"
 
 
+def parse_access(raw, question: dict, t: dict, known_roles: list[str]) -> tuple[str, list[str]]:
+    """Απάντηση του ανθρώπου -> (επίπεδο, ρόλοι). Επίπεδο: 'none' | 'privileged' | 'all'.
+
+    Δέχεται ΠΟΛΛΑΠΛΕΣ επιλογές (λίστα) ή ελεύθερο κείμενο («teller, admin»). Αν επιλεγούν ρόλοι ονομαστικά, το επίπεδο είναι
+    'privileged' με τη λίστα ρόλων (ή 'all' αν επιλέχθηκαν όλοι). Αναγνωρίζεται μόνο ό,τι υπάρχει στους γνωστούς ρόλους·
+    «σε κανέναν» ή απάντηση που δεν αναγνωρίζεται => 'none' (το πιο αυστηρό).
+    """
+    codes_by_text = {t["opt_none"]: "none", t["opt_priv"]: "privileged", t["opt_all"]: "all"}
+    role_by_text = dict(question.get("role_options") or {})
+    by_name = {r.casefold(): r for r in known_roles}
+    tokens = list(raw) if isinstance(raw, (list, tuple)) else ([raw] if str(raw) in codes_by_text or str(raw) in role_by_text
+                                                                 else re.split(r"[,;\n]+", str(raw)))
+    codes, roles = set(), []
+    for tok in tokens:
+        tok = str(tok).strip()
+        if tok in codes_by_text:
+            codes.add(codes_by_text[tok])
+        elif tok in role_by_text:
+            roles.append(role_by_text[tok])
+        elif tok.strip("«»'\" ").casefold() in by_name:
+            roles.append(by_name[tok.strip("«»'\" ").casefold()])
+        elif tok.casefold() in _NO:
+            codes.add("none")
+        elif tok.casefold() in _ALL:
+            codes.add("all")
+        elif tok.casefold() in _PRIV:
+            codes.add("privileged")
+    roles = list(dict.fromkeys(roles))
+    if "none" in codes or not (codes or roles):
+        return "none", []                                   # αντίφαση ή άγνωστη απάντηση => το πιο αυστηρό
+    if roles:
+        return ("all" if known_roles and set(known_roles) <= set(roles) else "privileged"), roles
+    return ("all" if "all" in codes else "privileged"), []
+
+
 def decisions_from_answers(questions: list[dict], answers: dict, intake: dict) -> dict:
     """Δομημένες αποφάσεις (JSON-serializable) από τις απαντήσεις· οι αναπάντητες παίρνουν το ασφαλές default."""
     t = _t(intake.get("language", "el"))
     allow_codes = {t["opt_none"]: "none", t["opt_priv"]: "privileged", t["opt_all"]: "all"}
     unc_codes = {t["opt_unc_none"]: "none", t["opt_unc_priv"]: "privileged", t["opt_unc_all"]: "all"}
-    dec = {"roles": list(intake.get("roles") or []), "tool_access": {}, "sensitive_fields": None, "owner": None,
-           "unconditional": "none", "confirmed_open": [], "qa": []}
+    dec = {"roles": list(intake.get("roles") or []), "tool_access": {}, "tool_roles": {}, "sensitive_fields": None,
+           "owner": None, "unconditional": "none", "confirmed_open": [], "qa": []}
     for q in questions:
         raw = answers.get(q["id"], q["default"])
         dec["qa"].append({"id": q["id"], "text": q["text"], "answer": raw if isinstance(raw, str) else ", ".join(map(str, raw)),
@@ -214,12 +262,14 @@ def decisions_from_answers(questions: list[dict], answers: dict, intake: dict) -
         if key == "roles" and not dec["roles"]:
             items = raw if isinstance(raw, list) else re.split(r"[,;\n]+", str(raw))
             dec["roles"] = [r.strip() for r in items if r.strip()]
-        elif key == "allow_tool":
-            dec["tool_access"][q["tool"]] = _level(raw, allow_codes, "none")
-        elif key == "allow_tools_more":
-            level = _level(raw, allow_codes, "none")
-            for name in q["tools"]:
+        elif key in ("allow_tool", "allow_tools_more"):
+            level, roles = parse_access(raw, q, t, dec["roles"])
+            for name in ([q["tool"]] if key == "allow_tool" else q["tools"]):
                 dec["tool_access"][name] = level
+                if roles and level == "privileged":
+                    dec["tool_roles"][name] = list(roles)
+            if roles:                                        # ό,τι βλέπει το LLM/review: ονομαστικά οι ρόλοι που επέλεξε ο άνθρωπος
+                dec["qa"][-1]["answer"] = t["only_roles"].format(roles=", ".join(roles)) if level == "privileged" else dec["qa"][-1]["answer"]
         elif key == "sensitive":
             items = raw if isinstance(raw, list) else re.split(r"[,;\n]+", str(raw))
             dec["sensitive_fields"] = [s.strip() for s in items if s.strip() and s.strip() != t["opt_sens_none"]]

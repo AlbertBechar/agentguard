@@ -121,6 +121,15 @@ def apply_floor(policy, intake: dict, analysis: dict, decisions: dict, schema: S
             issues.append(issue("info", "floor.denied", f"Το «{tool}» κλείνει για όλους ({why})"
                                 + (f"· αφαιρέθηκε από {stripped} κανόνα(ες) allow." if stripped else "."),
                                 tool=tool, rule=f"floor.denied.{tool}"))
+        elif level == "privileged" and decisions.get("tool_roles", {}).get(tool):
+            allowed = set(decisions["tool_roles"][tool])
+            outside = [r for r in policy["roles"] if r not in allowed]
+            rid = f"floor.roles.{tool}"
+            if outside and not any(isinstance(r, dict) and r.get("id") == rid for r in policy["rules"]):
+                policy["rules"].append({"id": rid, "tools": [tool], "roles": outside, "effect": "deny",
+                                        "reason": "only the roles chosen by the human may call this tool"})
+                issues.append(issue("info", "floor.roles", f"Το «{tool}» επιτρέπεται μόνο στους ρόλους που επέλεξε ο άνθρωπος "
+                                    f"({', '.join(sorted(allowed))})· κλείνει για: {', '.join(outside)}.", tool=tool, rule=rid))
         elif level == "privileged":
             issues.append(issue("warning", "floor.privileged", f"Για το «{tool}» επιλέχθηκε «μόνο ο πιο προνομιούχος ρόλος»: "
                                 "ελέγξτε στον πίνακα ότι το επιτρέπει μόνο ο κατάλληλος ρόλος.", tool=tool))
