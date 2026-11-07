@@ -1,0 +1,47 @@
+{
+  "demobank": {
+    "high_risk": {
+      "expected": 6,
+      "false_positives": [],
+      "found": 6,
+      "missed": [],
+      "recall": 1.0,
+      "true_positives": 6
+    },
+    "tools": 10,
+    "untrusted": {
+      "expected": 3,
+      "false_positives": [],
+      "found": 3,
+      "missed": [],
+      "recall": 1.0,
+      "true_positives": 3
+    }
+  },
+  "eclass": {
+    "high_risk": {
+      "expected": 12,
+      "false_positives": [
+        "fetch_url",
+        "post_forum",
+        "run_sql",
+        "submit_assignment",
+        "submit_exercise"
+      ],
+      "found": 17,
+      "missed": [],
+      "recall": 1.0,
+      "true_positives": 12
+    },
+    "tools": 30,
+    "untrusted": {
+      "expected": 8,
+      "false_positives": [],
+      "found": 8,
+      "missed": [],
+      "recall": 1.0,
+      "true_positives": 8
+    }
+  },
+  "note": "high_risk = write+external+dangerous. Τα false positives του eClass είναι εργαλεία που το v1 δεν βάζει στα HIGH_RISK (run_sql/fetch_url τα απαγορεύει η policy αλλιώς· post_forum, submit_assignment, submit_exercise είναι εγγραφές)."
+}
