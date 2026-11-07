@@ -27,6 +27,10 @@ class LLMError(RuntimeError):
     """Σφάλμα του LLM (δίκτυο, ποσόστωση, κακή απάντηση). Το μήνυμα δεν περιέχει ποτέ το κλειδί."""
 
 
+class LLMFormatError(LLMError):
+    """Η απάντηση του μοντέλου δεν είναι έγκυρο JSON αντικείμενο (αξίζει επανάληψη, σε αντίθεση με σφάλμα δικτύου)."""
+
+
 # ---------------------------------------------------------------------------
 # Ανοχή στην έξοδο του μοντέλου
 # ---------------------------------------------------------------------------
@@ -34,7 +38,7 @@ class LLMError(RuntimeError):
 def extract_json(text) -> dict:
     """Βγάζει το πρώτο JSON αντικείμενο από κείμενο μοντέλου (fences ```json, κείμενο γύρω-γύρω)."""
     if not isinstance(text, str) or not text.strip():
-        raise LLMError("Το μοντέλο δεν επέστρεψε κείμενο.")
+        raise LLMFormatError("Το μοντέλο δεν επέστρεψε κείμενο.")
     candidates = [text.strip()] + [m.strip() for m in _FENCE.findall(text)]
     for cand in candidates:
         try:
@@ -51,7 +55,7 @@ def extract_json(text) -> dict:
             continue
         if isinstance(obj, dict):
             return obj
-    raise LLMError("Η απάντηση του μοντέλου δεν περιέχει έγκυρο JSON αντικείμενο.")
+    raise LLMFormatError("Η απάντηση του μοντέλου δεν περιέχει έγκυρο JSON αντικείμενο.")
 
 
 def _digest(kind: str, system: str, user: str) -> str:
