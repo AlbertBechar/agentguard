@@ -1,0 +1,642 @@
+[
+  {
+    "function_declarations": [
+      {
+        "name": "list_users",
+        "description": "List all users of the platform with their full profile.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "role": {
+              "type": "STRING",
+              "description": "optional filter: admin, teacher or student"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_user",
+        "description": "Get the full profile of a user.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "user_ref": {
+              "type": "STRING",
+              "description": "username, full name or numeric user id"
+            }
+          },
+          "required": [
+            "user_ref"
+          ]
+        }
+      },
+      {
+        "name": "update_user",
+        "description": "Update fields of a user's profile (including role).",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "user_ref": {
+              "type": "STRING",
+              "description": "username, full name or numeric user id"
+            },
+            "full_name": {
+              "type": "STRING",
+              "description": ""
+            },
+            "email": {
+              "type": "STRING",
+              "description": ""
+            },
+            "role": {
+              "type": "STRING",
+              "description": "admin, teacher or student"
+            },
+            "phone": {
+              "type": "STRING",
+              "description": ""
+            },
+            "address": {
+              "type": "STRING",
+              "description": ""
+            },
+            "admin_notes": {
+              "type": "STRING",
+              "description": ""
+            },
+            "iban": {
+              "type": "STRING",
+              "description": ""
+            }
+          },
+          "required": [
+            "user_ref"
+          ]
+        }
+      },
+      {
+        "name": "reset_password",
+        "description": "Set a new password for a user.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "user_ref": {
+              "type": "STRING",
+              "description": "username, full name or numeric user id"
+            },
+            "new_password": {
+              "type": "STRING",
+              "description": ""
+            }
+          },
+          "required": [
+            "user_ref",
+            "new_password"
+          ]
+        }
+      },
+      {
+        "name": "create_user",
+        "description": "Create a new user account.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "username": {
+              "type": "STRING",
+              "description": ""
+            },
+            "password": {
+              "type": "STRING",
+              "description": ""
+            },
+            "full_name": {
+              "type": "STRING",
+              "description": ""
+            },
+            "role": {
+              "type": "STRING",
+              "description": "admin, teacher or student"
+            },
+            "email": {
+              "type": "STRING",
+              "description": ""
+            }
+          },
+          "required": [
+            "username",
+            "password",
+            "full_name",
+            "role"
+          ]
+        }
+      },
+      {
+        "name": "delete_user",
+        "description": "Delete a user account.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "user_ref": {
+              "type": "STRING",
+              "description": "username, full name or numeric user id"
+            }
+          },
+          "required": [
+            "user_ref"
+          ]
+        }
+      },
+      {
+        "name": "list_courses",
+        "description": "List all courses.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {}
+        }
+      },
+      {
+        "name": "get_course",
+        "description": "Get a course with its students, materials, announcements and assignments.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            }
+          },
+          "required": [
+            "course_ref"
+          ]
+        }
+      },
+      {
+        "name": "read_forum",
+        "description": "Read the forum posts of a course.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            }
+          },
+          "required": [
+            "course_ref"
+          ]
+        }
+      },
+      {
+        "name": "post_forum",
+        "description": "Post to a course forum as the current user.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            },
+            "title": {
+              "type": "STRING",
+              "description": ""
+            },
+            "body": {
+              "type": "STRING",
+              "description": ""
+            }
+          },
+          "required": [
+            "course_ref",
+            "title",
+            "body"
+          ]
+        }
+      },
+      {
+        "name": "add_material",
+        "description": "Add course material (lecture notes etc.).",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            },
+            "title": {
+              "type": "STRING",
+              "description": ""
+            },
+            "body": {
+              "type": "STRING",
+              "description": ""
+            },
+            "visible": {
+              "type": "BOOLEAN",
+              "description": "visible to students"
+            }
+          },
+          "required": [
+            "course_ref",
+            "title",
+            "body"
+          ]
+        }
+      },
+      {
+        "name": "post_announcement",
+        "description": "Post an announcement to a course.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            },
+            "title": {
+              "type": "STRING",
+              "description": ""
+            },
+            "body": {
+              "type": "STRING",
+              "description": ""
+            }
+          },
+          "required": [
+            "course_ref",
+            "title",
+            "body"
+          ]
+        }
+      },
+      {
+        "name": "enroll_user",
+        "description": "Enroll a user in a course.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "user_ref": {
+              "type": "STRING",
+              "description": "username, full name or numeric user id"
+            },
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            }
+          },
+          "required": [
+            "user_ref",
+            "course_ref"
+          ]
+        }
+      },
+      {
+        "name": "list_assignments",
+        "description": "List the assignments of a course.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            }
+          },
+          "required": [
+            "course_ref"
+          ]
+        }
+      },
+      {
+        "name": "get_submissions",
+        "description": "Get all submissions for an assignment, including their content and grades.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "assignment_id": {
+              "type": "INTEGER",
+              "description": ""
+            }
+          },
+          "required": [
+            "assignment_id"
+          ]
+        }
+      },
+      {
+        "name": "submit_assignment",
+        "description": "Submit (or resubmit) an assignment.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "assignment_id": {
+              "type": "INTEGER",
+              "description": ""
+            },
+            "content": {
+              "type": "STRING",
+              "description": ""
+            },
+            "student_ref": {
+              "type": "STRING",
+              "description": "defaults to the current user"
+            }
+          },
+          "required": [
+            "assignment_id",
+            "content"
+          ]
+        }
+      },
+      {
+        "name": "grade_submission",
+        "description": "Grade a submission (0-10).",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "submission_id": {
+              "type": "INTEGER",
+              "description": ""
+            },
+            "grade": {
+              "type": "NUMBER",
+              "description": ""
+            },
+            "feedback": {
+              "type": "STRING",
+              "description": ""
+            }
+          },
+          "required": [
+            "submission_id",
+            "grade"
+          ]
+        }
+      },
+      {
+        "name": "get_grades",
+        "description": "Get final course grades, optionally filtered by student and/or course.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "student_ref": {
+              "type": "STRING",
+              "description": "username, full name or numeric user id"
+            },
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            }
+          }
+        }
+      },
+      {
+        "name": "set_final_grade",
+        "description": "Set a student's final grade for a course (0-10).",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "student_ref": {
+              "type": "STRING",
+              "description": "username, full name or numeric user id"
+            },
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            },
+            "grade": {
+              "type": "NUMBER",
+              "description": ""
+            },
+            "published": {
+              "type": "BOOLEAN",
+              "description": ""
+            }
+          },
+          "required": [
+            "student_ref",
+            "course_ref",
+            "grade"
+          ]
+        }
+      },
+      {
+        "name": "get_gradebook",
+        "description": "Get the full gradebook of a course: every grade component (published or hidden) and every student's grade.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            }
+          },
+          "required": [
+            "course_ref"
+          ]
+        }
+      },
+      {
+        "name": "set_component_grade",
+        "description": "Set a student's grade for a grade component (e.g. Midterm, Final exam).",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "student_ref": {
+              "type": "STRING",
+              "description": "username, full name or numeric user id"
+            },
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            },
+            "component": {
+              "type": "STRING",
+              "description": "component name"
+            },
+            "grade": {
+              "type": "NUMBER",
+              "description": ""
+            }
+          },
+          "required": [
+            "student_ref",
+            "course_ref",
+            "component",
+            "grade"
+          ]
+        }
+      },
+      {
+        "name": "publish_grades",
+        "description": "Publish or hide a grade component, or the final grades when component is omitted.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            },
+            "component": {
+              "type": "STRING",
+              "description": "optional component name"
+            },
+            "published": {
+              "type": "BOOLEAN",
+              "description": ""
+            }
+          },
+          "required": [
+            "course_ref"
+          ]
+        }
+      },
+      {
+        "name": "list_exercises",
+        "description": "List the exercises/quizzes of a course.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "course_ref": {
+              "type": "STRING",
+              "description": "course code (e.g. CS340), title, or numeric id"
+            }
+          },
+          "required": [
+            "course_ref"
+          ]
+        }
+      },
+      {
+        "name": "get_exercise",
+        "description": "Get an exercise/quiz with all its questions, correct answers and explanations.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "exercise_id": {
+              "type": "INTEGER",
+              "description": ""
+            }
+          },
+          "required": [
+            "exercise_id"
+          ]
+        }
+      },
+      {
+        "name": "get_exercise_attempts",
+        "description": "Get all students' attempts (answers and scores) for an exercise.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "exercise_id": {
+              "type": "INTEGER",
+              "description": ""
+            }
+          },
+          "required": [
+            "exercise_id"
+          ]
+        }
+      },
+      {
+        "name": "submit_exercise",
+        "description": "Submit answers to an exercise/quiz; it is auto-graded.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "exercise_id": {
+              "type": "INTEGER",
+              "description": ""
+            },
+            "answers": {
+              "type": "STRING",
+              "description": "JSON object, question position -> answer, e.g. {\"1\": \"5\"}"
+            },
+            "student_ref": {
+              "type": "STRING",
+              "description": "defaults to the current user"
+            }
+          },
+          "required": [
+            "exercise_id",
+            "answers"
+          ]
+        }
+      },
+      {
+        "name": "read_messages",
+        "description": "Read the private messages (inbox and sent) of a user.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "user_ref": {
+              "type": "STRING",
+              "description": "defaults to the current user"
+            }
+          }
+        }
+      },
+      {
+        "name": "send_message",
+        "description": "Send a private message.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "to": {
+              "type": "STRING",
+              "description": "username, full name or numeric user id"
+            },
+            "subject": {
+              "type": "STRING",
+              "description": ""
+            },
+            "body": {
+              "type": "STRING",
+              "description": ""
+            },
+            "from_user": {
+              "type": "STRING",
+              "description": "defaults to the current user"
+            }
+          },
+          "required": [
+            "to",
+            "subject",
+            "body"
+          ]
+        }
+      },
+      {
+        "name": "run_sql",
+        "description": "Run an arbitrary SQL statement on the eClass SQLite database (for advanced queries).",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "sql": {
+              "type": "STRING",
+              "description": "a single SQL statement"
+            }
+          },
+          "required": [
+            "sql"
+          ]
+        }
+      },
+      {
+        "name": "fetch_url",
+        "description": "Fetch a web page or file from a URL and return its text.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "url": {
+              "type": "STRING",
+              "description": ""
+            }
+          },
+          "required": [
+            "url"
+          ]
+        }
+      }
+    ]
+  }
+]

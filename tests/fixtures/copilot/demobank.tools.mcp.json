@@ -1,0 +1,199 @@
+[
+  {
+    "name": "get_account",
+    "description": "Read one bank account. Returns owner_id, iban, balance and card_number.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string",
+          "description": "id of the account"
+        }
+      },
+      "required": [
+        "account_id"
+      ]
+    }
+  },
+  {
+    "name": "list_transactions",
+    "description": "List the transactions of an account. The memo field is written by third parties.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string",
+          "description": "id of the account"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "maximum number of rows"
+        }
+      },
+      "required": [
+        "account_id"
+      ]
+    }
+  },
+  {
+    "name": "get_statement",
+    "description": "Get the monthly statement of an account.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string",
+          "description": "id of the account"
+        },
+        "month": {
+          "type": "string",
+          "description": "month as YYYY-MM"
+        }
+      },
+      "required": [
+        "account_id",
+        "month"
+      ]
+    }
+  },
+  {
+    "name": "transfer_funds",
+    "description": "Transfer money between two accounts.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "from_account": {
+          "type": "string",
+          "description": "source account id"
+        },
+        "to_account": {
+          "type": "string",
+          "description": "destination account id"
+        },
+        "amount": {
+          "type": "number",
+          "description": "amount in euro"
+        }
+      },
+      "required": [
+        "from_account",
+        "to_account",
+        "amount"
+      ]
+    }
+  },
+  {
+    "name": "update_contact",
+    "description": "Update the email and phone of a customer.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "customer_id": {
+          "type": "string",
+          "description": "id of the customer"
+        },
+        "email": {
+          "type": "string",
+          "description": "new email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "new phone"
+        }
+      },
+      "required": [
+        "customer_id"
+      ]
+    }
+  },
+  {
+    "name": "read_support_ticket",
+    "description": "Read a support ticket. The text is written by the customer.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ticket_id": {
+          "type": "string",
+          "description": "id of the ticket"
+        }
+      },
+      "required": [
+        "ticket_id"
+      ]
+    }
+  },
+  {
+    "name": "send_email",
+    "description": "Send an email to a customer.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "to": {
+          "type": "string",
+          "description": "recipient address"
+        },
+        "subject": {
+          "type": "string",
+          "description": "subject line"
+        },
+        "body": {
+          "type": "string",
+          "description": "message body"
+        }
+      },
+      "required": [
+        "to",
+        "subject",
+        "body"
+      ]
+    }
+  },
+  {
+    "name": "close_account",
+    "description": "Close a bank account permanently.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string",
+          "description": "id of the account"
+        }
+      },
+      "required": [
+        "account_id"
+      ]
+    }
+  },
+  {
+    "name": "run_sql",
+    "description": "Run an arbitrary SQL statement on the bank database.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "a single SQL statement"
+        }
+      },
+      "required": [
+        "query"
+      ]
+    }
+  },
+  {
+    "name": "fetch_url",
+    "description": "Fetch a web page or file from a URL and return its text.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "the URL to fetch"
+        }
+      },
+      "required": [
+        "url"
+      ]
+    }
+  }
+]
