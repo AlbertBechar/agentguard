@@ -10,6 +10,7 @@ ui/server.py -- λεπτό FastAPI πάνω στο ui/service.py + σερβίρ�
 from __future__ import annotations
 
 import argparse
+import contextlib
 import logging
 import socket
 import sys
@@ -29,7 +30,7 @@ from fastapi.responses import JSONResponse, Response  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from starlette.exceptions import HTTPException as StarletteHTTPException  # noqa: E402
 
-from ui import service  # noqa: E402
+from ui import envfile, service  # noqa: E402
 from ui.service import UIError, scrub  # noqa: E402
 
 LOG = logging.getLogger("agentguard.ui")
@@ -39,7 +40,16 @@ DEFAULT_PORT = 8765
 CSP = ("default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; "
        "form-action 'self'")
 
-app = FastAPI(title="AgentGuard Policy Copilot UI", docs_url=None, redoc_url=None, openapi_url=None)
+@contextlib.asynccontextmanager
+async def _lifespan(_app):
+    """Στην εκκίνηση του server (όχι στο import): φόρτωση του AI_STUDIO_API_KEY από το .env της ρίζας, αν λείπει από το περιβάλλον."""
+    names = envfile.load_env()
+    if names:
+        LOG.warning("loaded from .env: %s", ", ".join(names))      # μόνο ονόματα, ποτέ τιμές
+    yield
+
+
+app = FastAPI(title="AgentGuard Policy Copilot UI", docs_url=None, redoc_url=None, openapi_url=None, lifespan=_lifespan)
 
 
 def _error(status: int, code: str, message: str) -> JSONResponse:

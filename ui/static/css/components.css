@@ -262,3 +262,18 @@ details.exp > .exp-body { padding: 0 1.2rem 1.2rem; }
 .md li + li { margin-top: .35rem; }
 .card h2 { font-size: clamp(1.25rem, 1rem + .8vw, 1.6rem); }
 .card .code, .card .table-wrap { margin-top: .25rem; }
+
+/* ---------- Έγκριση και «Δοκίμασε» ---------- */
+.summary-lines { padding-left: 1.3rem; display: grid; gap: .4rem; }
+@keyframes pop { 0% { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
+.approved { text-align: center; justify-items: center; border-color: var(--mint); background: var(--mint-tint); }
+.approved > * { margin-inline: auto; }
+.approved .row { justify-content: center; }
+.approved-badge { display: inline-grid; place-items: center; width: 6rem; height: 6rem; border-radius: 50%; color: var(--mint); border: 2px solid var(--mint); background: var(--bg); animation: pop .6s var(--ease) both; }
+.decision { display: grid; gap: .65rem; padding: 1.3rem 1.4rem; border-radius: var(--r-lg); border: 1.5px solid var(--line-strong); background: color-mix(in srgb, var(--bg) 55%, transparent); }
+.decision .verdict { display: flex; align-items: center; gap: .7rem; font-size: 1.75rem; font-weight: 850; line-height: 1.1; }
+.decision.allow { border-color: var(--mint); background: var(--mint-tint); }
+.decision.allow .verdict { color: var(--mint); }
+.decision.deny .verdict { color: var(--text); }
+.decision.ask { border-color: var(--amber); background: var(--amber-tint); }
+.decision.ask .verdict { color: var(--amber); }
