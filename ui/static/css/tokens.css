@@ -1,0 +1,41 @@
+/* AgentGuard UI -- σχεδιαστικά tokens. Η παλέτα είναι δεσμευτική: δεν υπάρχουν άλλα χρώματα εκτός από διαβαθμίσεις τους.
+   Κείμενο πάνω σε mint ή pink είναι ΠΑΝΤΑ var(--bg) (σκούρο). Κόκκινο δεν υπάρχει ποτέ· «κίνδυνος/σφάλμα» = amber + εικονίδιο + κείμενο. */
+:root {
+  color-scheme: dark;
+
+  /* παλέτα */
+  --bg: #0A1633;
+  --bg-2: #0F1F45;            /* άκρο του gradient φόντου */
+  --card: #102248;
+  --card-2: #16295A;
+  --line: #2A4380;            /* διακοσμητικά περιγράμματα */
+  --line-strong: #5A78BE;     /* πεδία / κουμπιά (≥ 3:1 πάνω στο φόντο) */
+  --mint: #7CF2B0;            /* κύριο χρώμα UI */
+  --mint-dim: #4FD18A;
+  --pink: #FF4FA3;            /* ΜΟΝΟ για showcase */
+  --pink-soft: #FF8CC6;
+  --amber: #FFB84D;           /* προειδοποίηση / «η επίθεση πέτυχε» / σφάλμα */
+  --text: #EAF1FF;
+  --text-2: #A9B8DA;
+
+  /* διαβαθμίσεις των παραπάνω (διαφάνειες) */
+  --mint-tint: color-mix(in srgb, var(--mint) 12%, transparent);
+  --mint-tint-2: color-mix(in srgb, var(--mint) 22%, transparent);
+  --pink-tint: color-mix(in srgb, var(--pink) 14%, transparent);
+  --amber-tint: color-mix(in srgb, var(--amber) 13%, transparent);
+  --amber-line: color-mix(in srgb, var(--amber) 55%, transparent);
+  --card-glass: color-mix(in srgb, var(--card) 78%, transparent);
+  --shadow: 0 18px 50px color-mix(in srgb, var(--bg) 55%, black);
+
+  /* τυπογραφία: system stack, χωρίς εξωτερικά fonts */
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  /* μέγεθος και ρυθμός */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --gap: clamp(16px, 2.2vw, 28px);
+  --wrap: 1180px;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}

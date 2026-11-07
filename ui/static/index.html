@@ -1,11 +1,40 @@
 <!doctype html>
 <html lang="el">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AgentGuard</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentGuard — Policy Copilot</title>
+  <meta name="description" content="Το AI γράφει πρόχειρους κανόνες ασφαλείας, ο άνθρωπος εγκρίνει και ένας απλός Guard τους επιβάλλει.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0A1633">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <script type="module" src="js/main.js"></script>
 </head>
 <body>
-<p>AgentGuard Studio -- το frontend φτιάχνεται στο Βήμα 2.</p>
+  <a class="skip" href="#main">Μετάβαση στο περιεχόμενο</a>
+
+  <header class="topbar">
+    <div class="wrap topbar-in">
+      <a class="wordmark" href="#/" aria-label="AgentGuard, αρχική"><span id="logo-slot"></span>AgentGuard</a>
+      <nav class="nav" aria-label="Κύρια πλοήγηση">
+        <a href="#/" data-route="/">Αρχική</a>
+        <a href="#/studio" data-route="/studio">Studio</a>
+        <a href="#/results" data-route="/results">Αποτελέσματα</a>
+      </nav>
+      <div class="topbar-tools">
+        <span class="ai-badge" id="ai-badge" data-engine="none" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span id="ai-badge-text">AI</span></span>
+        <button type="button" class="btn btn-sm" id="present-btn" aria-pressed="false" title="Λειτουργία παρουσίασης (πλήκτρο P)">Παρουσίαση</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <noscript><div class="wrap section"><div class="alert"><div><div class="alert-title">Χρειάζεται JavaScript</div><p>Το Studio του AgentGuard δουλεύει μόνο με ενεργή JavaScript στον browser.</p></div></div></div></noscript>
+  </main>
+
+  <div id="toasts" aria-live="polite"></div>
 </body>
 </html>
