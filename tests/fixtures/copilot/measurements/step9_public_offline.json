@@ -1,0 +1,70 @@
+[
+  {
+    "name": "petstore",
+    "tools": 19,
+    "source": "offline",
+    "model": "offline",
+    "attempts": 0,
+    "risk": {
+      "write": 11,
+      "read": 8
+    },
+    "returns_untrusted": 0,
+    "questions_asked": 3,
+    "question_samples": [
+      "Ποια πεδία είναι ευαίσθητα και πρέπει να κρύβονται από όσους δεν δικαιούνται να τα δουν;",
+      "Πώς καθορίζεται ο ιδιοκτήτης μιας εγγραφής (π.χ. ποιου πελάτη είναι ένας λογαριασμός);",
+      "Τα εργαλεία που αλλάζουν δεδομένα (updatePet, addPet, updatePetWithForm, deletePet, uploadFile, placeOrder…) επιτρέπεται να τα καλεί κάποιος ρόλος χωρίς επιπλέον έλεγχο (ιδιοκτησίας ή ορίου);"
+    ],
+    "uncovered_before_floor": 0,
+    "floor_changes": {},
+    "blocking_errors": [],
+    "warnings": 13,
+    "matrix_cells": {
+      "deny": 22,
+      "allow": 16
+    },
+    "tools_in_policy": 19,
+    "own_scenarios": {
+      "passed": 22,
+      "total": 22
+    },
+    "review_sample": "# Review πολιτικής ασφαλείας — Example pet shop\n\n⚠️ **Πρόχειρο από AI — ελέγξτε πριν εγκρίνετε.** Μόνο ο άνθρωπος που υπογράφει το εγκρίνει· το AI δεν αποφασίζει ποτέ την ώρα που τρέχει ο agent.\n\n*Πηγή πρόχειρου: offline πολιτική από heuristics (χωρίς LLM).*\n\n## 1. Τι επιτρέπεται (εργαλείο × ρόλος)\n\n✅ επιτρέπεται · 🔒 απαγορεύεται · ⚠️ υπό συνθήκη (π.χ. μόνο ο ιδιοκτήτης, μέχρι ένα όριο)\n\n| Εργαλείο | customer | staff |\n|---|---|---|\n| `addPet` | 🔒 απαγορεύεται | 🔒 απαγορεύεται |\n| `createUser` | 🔒 απαγορεύεται | 🔒 απαγορεύεται |"
+  },
+  {
+    "name": "github_mcp",
+    "tools": 133,
+    "source": "offline",
+    "model": "offline",
+    "attempts": 0,
+    "risk": {
+      "read": 62,
+      "write": 68,
+      "external": 3
+    },
+    "returns_untrusted": 34,
+    "questions_asked": 6,
+    "question_samples": [
+      "Επιτρέπεται το εργαλείο «dismiss_notification» (εξωτερικό) σε κάποιον ρόλο;",
+      "Επιτρέπεται το εργαλείο «manage_notification_subscription» (εξωτερικό) σε κάποιον ρόλο;",
+      "Επιτρέπεται το εργαλείο «manage_repository_notification_subscription» (εξωτερικό) σε κάποιον ρόλο;",
+      "Ποια πεδία είναι ευαίσθητα και πρέπει να κρύβονται από όσους δεν δικαιούνται να τα δουν;"
+    ],
+    "uncovered_before_floor": 0,
+    "floor_changes": {
+      "floor.denied": 3
+    },
+    "blocking_errors": [],
+    "warnings": 72,
+    "matrix_cells": {
+      "allow": 124,
+      "deny": 142
+    },
+    "tools_in_policy": 133,
+    "own_scenarios": {
+      "passed": 142,
+      "total": 142
+    },
+    "review_sample": "# Review πολιτικής ασφαλείας — Example engineering team\n\n⚠️ **Πρόχειρο από AI — ελέγξτε πριν εγκρίνετε.** Μόνο ο άνθρωπος που υπογράφει το εγκρίνει· το AI δεν αποφασίζει ποτέ την ώρα που τρέχει ο agent.\n\n*Πηγή πρόχειρου: offline πολιτική από heuristics (χωρίς LLM).*\n\n## 1. Τι επιτρέπεται (εργαλείο × ρόλος)\n\n✅ επιτρέπεται · 🔒 απαγορεύεται · ⚠️ υπό συνθήκη (π.χ. μόνο ο ιδιοκτήτης, μέχρι ένα όριο)\n\n| Εργαλείο | developer | maintainer |\n|---|---|---|\n| `actions_get` | ✅ επιτρέπεται | ✅ επιτρέπεται |\n| `actions_list` | ✅ επιτρέπεται | ✅ επιτρέπεται |"
+  }
+]

@@ -102,5 +102,38 @@ class PublicToolsTests(unittest.TestCase):
         self.assertEqual(github["questions_asked"], 6)
 
 
+class PublicRealGeminiTests(unittest.TestCase):
+    """Αποθηκευμένο αποτέλεσμα του ΠΡΑΓΜΑΤΙΚΟΥ Gemini στα δημόσια εργαλεία (χωρίς gold set: μόνο τι παρήχθη)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.llm = {r["name"]: r for r in json.loads((FIX / "measurements" / "step9_public_llm.json").read_text(encoding="utf-8"))}
+        cls.off = {r["name"]: r for r in json.loads((FIX / "measurements" / "step9_public_offline.json").read_text(encoding="utf-8"))}
+
+    def test_github_mcp_was_fully_covered_without_blocking_errors(self):
+        r = self.llm["github_mcp"]
+        self.assertEqual((r["source"], r["tools"], r["tools_in_policy"], r["blocking_errors"]), ("llm", 133, 133, []))
+        self.assertEqual(r["matrix_cells"], {"allow": 124, "deny": 74, "conditional": 68})
+        self.assertEqual(r["floor_changes"], {"floor.untrusted_tools": 2, "floor.denied": 3, "floor.ctx_requested": 1})
+        self.assertLessEqual(r["questions_asked"], 8)
+
+    def test_petstore_blocks_approval_until_the_human_confirms_unconditional_write_access(self):
+        r = self.llm["petstore"]
+        self.assertEqual((r["source"], r["tools"], r["tools_in_policy"]), ("llm", 19, 19))
+        self.assertEqual(r["floor_changes"].get("probe.open"), 10)
+        self.assertTrue(r["blocking_errors"])
+
+    def test_offline_and_llm_see_the_same_tools_the_same_way(self):
+        for name in ("petstore", "github_mcp"):
+            self.assertEqual(self.llm[name]["risk"], self.off[name]["risk"])
+            self.assertEqual(self.off[name]["source"], "offline")
+
+    def test_public_replay_file_has_no_secrets_and_is_labelled_replay_only(self):
+        text = (FIX / "replay" / "public.replay.ndjson").read_text(encoding="utf-8")
+        for needle in ("AIza", "x-goog-api-key", "AI_STUDIO_API_KEY"):
+            self.assertNotIn(needle, text)
+        self.assertEqual(ReplayLLM(FIX / "replay" / "public.replay.ndjson").label, "replay")
+
+
 if __name__ == "__main__":
     unittest.main()

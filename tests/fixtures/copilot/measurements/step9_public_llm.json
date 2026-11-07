@@ -1,0 +1,84 @@
+[
+  {
+    "name": "petstore",
+    "tools": 19,
+    "source": "llm",
+    "model": "gemini:gemini-3.5-flash-lite",
+    "attempts": 1,
+    "risk": {
+      "write": 11,
+      "read": 8
+    },
+    "returns_untrusted": 0,
+    "questions_asked": 5,
+    "question_samples": [
+      "Ποια πεδία είναι ευαίσθητα και πρέπει να κρύβονται από όσους δεν δικαιούνται να τα δουν;",
+      "Πώς καθορίζεται ο ιδιοκτήτης μιας εγγραφής (π.χ. ποιου πελάτη είναι ένας λογαριασμός);",
+      "Τα εργαλεία που αλλάζουν δεδομένα (updatePet, addPet, updatePetWithForm, deletePet, uploadFile, placeOrder…) επιτρέπεται να τα καλεί κάποιος ρόλος χωρίς επιπλέον έλεγχο (ιδιοκτησίας ή ορίου);",
+      "Επιτρέπεται στους πελάτες (customers) να προσθέτουν, να ενημερώνουν ή να διαγράφουν κατοικίδια (pets), ή αυτή η ενέργεια περιορίζεται αποκλειστικά στο προσωπικό (staff);"
+    ],
+    "uncovered_before_floor": 0,
+    "floor_changes": {
+      "floor.ctx_requested": 1,
+      "probe.open": 10
+    },
+    "blocking_errors": [
+      "Το εργαλείο υψηλού ρίσκου «addPet» επιτρέπεται στον ρόλο «staff» χωρίς καμία συνθήκη ιδιοκτησίας ή ορίου (κανόνας pets.manage). Προσθέστε συνθήκη ή επιβεβαιώστε ρητά στις απαντήσεις ότι είναι σκόπιμο.",
+      "Το εργαλείο υψηλού ρίσκου «createUser» επιτρέπεται στον ρόλο «staff» χωρίς καμία συνθήκη ιδιοκτησίας ή ορίου (κανόνας users.manage). Προσθέστε συνθήκη ή επιβεβαιώστε ρητά στις απαντήσεις ότι είναι σκόπιμο.",
+      "Το εργαλείο υψηλού ρίσκου «createUsersWithListInput» επιτρέπεται στον ρόλο «staff» χωρίς καμία συνθήκη ιδιοκτησίας ή ορίου (κανόνας users.manage). Προσθέστε συνθήκη ή επιβεβαιώστε ρητά στις απαντήσεις ότι είναι σκόπιμο.",
+      "Το εργαλείο υψηλού ρίσκου «deleteOrder» επιτρέπεται στον ρόλο «staff» χωρίς καμία συνθήκη ιδιοκτησίας ή ορίου (κανόνας order.delete). Προσθέστε συνθήκη ή επιβεβαιώστε ρητά στις απαντήσεις ότι είναι σκόπιμο.",
+      "Το εργαλείο υψηλού ρίσκου «deletePet» επιτρέπεται στον ρόλο «staff» χωρίς καμία συνθήκη ιδιοκτησίας ή ορίου (κανόνας pets.manage). Προσθέστε συνθήκη ή επιβεβαιώστε ρητά στις απαντήσεις ότι είναι σκόπιμο."
+    ],
+    "warnings": 2,
+    "matrix_cells": {
+      "deny": 12,
+      "conditional": 15,
+      "allow": 11
+    },
+    "tools_in_policy": 19,
+    "own_scenarios": {
+      "passed": 25,
+      "total": 26
+    },
+    "review_sample": "# Review πολιτικής ασφαλείας — Example pet shop\n\n⚠️ **Πρόχειρο από AI — ελέγξτε πριν εγκρίνετε.** Μόνο ο άνθρωπος που υπογράφει το εγκρίνει· το AI δεν αποφασίζει ποτέ την ώρα που τρέχει ο agent.\n\n*Πηγή πρόχειρου: LLM (gemini:gemini-3.5-flash-lite).*\n\n## 1. Τι επιτρέπεται (εργαλείο × ρόλος)\n\n✅ επιτρέπεται · 🔒 απαγορεύεται · ⚠️ υπό συνθήκη (π.χ. μόνο ο ιδιοκτήτης, μέχρι ένα όριο)\n\n| Εργαλείο | customer | staff |\n|---|---|---|\n| `addPet` | 🔒 απαγορεύεται | ⚠️ υπό συνθήκη: only staff may add, update or delete pets |\n| `createUser` | 🔒 απαγορεύεται | ⚠️ υπό συνθήκη: only staff may manage users |"
+  },
+  {
+    "name": "github_mcp",
+    "tools": 133,
+    "source": "llm",
+    "model": "gemini:gemini-3.5-flash-lite",
+    "attempts": 1,
+    "risk": {
+      "read": 62,
+      "write": 68,
+      "external": 3
+    },
+    "returns_untrusted": 34,
+    "questions_asked": 7,
+    "question_samples": [
+      "Επιτρέπεται το εργαλείο «dismiss_notification» (εξωτερικό) σε κάποιον ρόλο;",
+      "Επιτρέπεται το εργαλείο «manage_notification_subscription» (εξωτερικό) σε κάποιον ρόλο;",
+      "Επιτρέπεται το εργαλείο «manage_repository_notification_subscription» (εξωτερικό) σε κάποιον ρόλο;",
+      "Ποια πεδία είναι ευαίσθητα και πρέπει να κρύβονται από όσους δεν δικαιούνται να τα δουν;"
+    ],
+    "uncovered_before_floor": 0,
+    "floor_changes": {
+      "floor.untrusted_tools": 2,
+      "floor.denied": 3,
+      "floor.ctx_requested": 1
+    },
+    "blocking_errors": [],
+    "warnings": 4,
+    "matrix_cells": {
+      "allow": 124,
+      "deny": 74,
+      "conditional": 68
+    },
+    "tools_in_policy": 133,
+    "own_scenarios": {
+      "passed": 83,
+      "total": 86
+    },
+    "review_sample": "# Review πολιτικής ασφαλείας — Example engineering team\n\n⚠️ **Πρόχειρο από AI — ελέγξτε πριν εγκρίνετε.** Μόνο ο άνθρωπος που υπογράφει το εγκρίνει· το AI δεν αποφασίζει ποτέ την ώρα που τρέχει ο agent.\n\n*Πηγή πρόχειρου: LLM (gemini:gemini-3.5-flash-lite).*\n\n## 1. Τι επιτρέπεται (εργαλείο × ρόλος)\n\n✅ επιτρέπεται · 🔒 απαγορεύεται · ⚠️ υπό συνθήκη (π.χ. μόνο ο ιδιοκτήτης, μέχρι ένα όριο)\n\n| Εργαλείο | developer | maintainer |\n|---|---|---|\n| `actions_get` | ✅ επιτρέπεται | ✅ επιτρέπεται |\n| `actions_list` | ✅ επιτρέπεται | ✅ επιτρέπεται |"
+  }
+]
