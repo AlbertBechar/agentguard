@@ -18,3 +18,7 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+# Copilot / Guard outputs (CLI default folder and JSONL audit/replay logs)
+out/
+*.jsonl
