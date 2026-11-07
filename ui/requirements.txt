@@ -1,0 +1,4 @@
+fastapi==0.162.2
+uvicorn==0.54.0
+# httpx: μόνο για τα τεστ API (fastapi.testclient)
+httpx==0.28.1

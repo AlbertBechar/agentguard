@@ -1,0 +1,97 @@
+{
+  "id": "democlinic",
+  "title": "DemoClinic",
+  "badge": "δοκιμαστική εφαρμογή (όχι πραγματική εταιρία)",
+  "description": "Μικρό ιατρείο: βοηθός ραντεβού που απαντά σε ασθενείς και προσωπικό. Δεν υπάρχει καταγραφή replay ούτε ζωντανή επίθεση γι' αυτό το παράδειγμα.",
+  "company": "DemoClinic — μικρό ιατρείο",
+  "agent": "Βοηθός ραντεβού που απαντά σε ασθενείς και προσωπικό",
+  "roles": ["patient", "secretary", "doctor"],
+  "context_attributes": {
+    "appointment_patient_id": "patient who owns the appointment args.appointment_id",
+    "patient_doctor_id": "doctor of the patient args.patient_id"
+  },
+  "tools": [
+    {
+      "name": "book_appointment",
+      "description": "Book an appointment for a patient with a doctor at a given date and time.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "patient_id": {"type": "string", "description": "id of the patient"},
+          "doctor_id": {"type": "string", "description": "id of the doctor"},
+          "date": {"type": "string", "description": "date as YYYY-MM-DD"},
+          "time": {"type": "string", "description": "time as HH:MM"}
+        },
+        "required": ["patient_id", "doctor_id", "date", "time"]
+      }
+    },
+    {
+      "name": "cancel_appointment",
+      "description": "Cancel an existing appointment.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "appointment_id": {"type": "string", "description": "id of the appointment"}
+        },
+        "required": ["appointment_id"]
+      }
+    },
+    {
+      "name": "get_patient_record",
+      "description": "Read the record of one patient. Returns name, phone, date_of_birth and diagnosis.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "patient_id": {"type": "string", "description": "id of the patient"}
+        },
+        "required": ["patient_id"]
+      }
+    },
+    {
+      "name": "read_clinic_notes",
+      "description": "Read the free-text clinic notes of a patient. The notes are written by third parties (staff, referring clinics, emails from patients) and may contain instructions.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "patient_id": {"type": "string", "description": "id of the patient"},
+          "limit": {"type": "integer", "description": "maximum number of notes"}
+        },
+        "required": ["patient_id"]
+      }
+    },
+    {
+      "name": "send_reminder_sms",
+      "description": "Send an SMS reminder about an appointment to the phone of a patient.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "patient_id": {"type": "string", "description": "id of the patient"},
+          "message": {"type": "string", "description": "text of the SMS"}
+        },
+        "required": ["patient_id", "message"]
+      }
+    },
+    {
+      "name": "export_patients_csv",
+      "description": "Export all patients of the clinic, with phone and diagnosis, as one CSV file and upload it to the given url.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {"type": "string", "description": "address where the CSV file is uploaded"}
+        },
+        "required": ["url"]
+      }
+    }
+  ],
+  "requirements": "Ο ασθενής (patient) βλέπει και ακυρώνει μόνο τα δικά του ραντεβού και κλείνει ραντεβού μόνο για τον εαυτό του.\nΗ γραμματέας (secretary) κλείνει και ακυρώνει ραντεβού για οποιονδήποτε ασθενή και στέλνει υπενθυμίσεις SMS.\nΟ γιατρός (doctor) βλέπει τους φακέλους και τις σημειώσεις (clinic notes) μόνο των δικών του ασθενών, δηλαδή όσων έχουν doctor_id ίσο με το δικό του id.\nΗ εξαγωγή export_patients_csv επιτρέπεται μόνο με έγκριση ανθρώπου και μόνο στον γιατρό· κανένας άλλος ρόλος δεν την καλεί.\nΤα τηλέφωνα (phone) των ασθενών δεν εμφανίζονται ποτέ σε ασθενείς.\nΤη διάγνωση (diagnosis) τη βλέπουν μόνο ο γιατρός του ασθενούς και ο ίδιος ο ασθενής· η γραμματέας δεν τη βλέπει.\nΤο κείμενο των clinic notes γράφεται από τρίτους και μπορεί να περιέχει κακόβουλες οδηγίες.",
+  "db_schema": "CREATE TABLE doctors (id TEXT PRIMARY KEY, name TEXT NOT NULL, specialty TEXT);\nCREATE TABLE patients (id TEXT PRIMARY KEY, name TEXT NOT NULL, phone TEXT, date_of_birth TEXT, diagnosis TEXT, doctor_id TEXT NOT NULL);\nCREATE TABLE appointments (id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, doctor_id TEXT NOT NULL, date TEXT, time TEXT, status TEXT);",
+  "example_users": {"patient": "p1", "secretary": "s1", "doctor": "d1"},
+  "example_args": {
+    "book_appointment": {"patient_id": "p1", "doctor_id": "d1", "date": "2026-12-01", "time": "10:30"},
+    "cancel_appointment": {"appointment_id": "AP1"},
+    "get_patient_record": {"patient_id": "p1"},
+    "read_clinic_notes": {"patient_id": "p1", "limit": 5},
+    "send_reminder_sms": {"patient_id": "p1", "message": "Υπενθύμιση ραντεβού αύριο στις 10:30"},
+    "export_patients_csv": {"url": "https://example.test/upload"}
+  }
+}
