@@ -138,14 +138,14 @@ def _check_courses_and_content(user: dict, tool: str, args: dict) -> Decision:
     role = user.get("role")
 
     if tool == "list_courses":
-        if role in ("admin", "teacher"):
-            return Decision("allow")
-        return Decision("deny", reason="Students cannot list all courses", rule="courses.list.teacher_admin")
+        # ΠΛΕΟΝ ΕΠΙΤΡΕΠΕΤΑΙ ΣΕ ΟΛΟΥΣ. Η redact θα κόψει τα μαθήματα που δεν έχει εγγραφεί.
+        return Decision("allow")
 
     course = _resolve_course(args.get("course_ref"))
     if not course:
         return Decision("deny", reason="Course not found", rule="courses.not_found")
 
+    
     has_access = _has_course_access(user, course["id"])
 
     if tool in ("get_course", "read_forum", "post_forum", "list_assignments", "list_exercises"):
@@ -369,64 +369,73 @@ PERSONAL_FIELDS = {
     "father_name",
 }
 
-
-def _redact_dict(user: dict, item: dict) -> dict:
-    """Εφαρμόζει κανόνες redaction σε ένα λεξικό (π.χ. προφίλ χρήστη ή εγγραφή)."""
+def _redact_dict(user: dict, item: dict) -> dict | None:
+    """Εφαρμόζει κανόνες redaction σε ένα λεξικό (π.χ. προφίλ χρήστη, βαθμού, ή μαθήματος)."""
     if not isinstance(item, dict):
         return item
 
     role = user.get("role")
     user_id = user.get("id")
 
-    # Ελέγχουμε αν το dictionary αφορά κάποιον χρήστη και ποιον
+    # 1. Διαγραφή αδημοσίευτων βαθμών (Διόρθωση leak)
+    # Το κάνουμε string για να πιάσουμε το 0, το "0" και το False (λόγω SQLite)
+    if role == "student" and "published" in item:
+        if str(item["published"]).lower() in ("0", "false"):
+            return None
+
+    # 2. Φιλτράρισμα λίστας μαθημάτων (Διόρθωση list_courses)
+    # Αναγνωρίζουμε ότι το λεξικό είναι μάθημα αν έχει id και enrollment_key
+    if role == "student" and "enrollment_key" in item and "id" in item:
+        if not _is_enrolled(user_id, item["id"]):
+            return None
+
     target_id = item.get("id") or item.get("user_id") or item.get("student_id")
     is_self = (target_id is not None and target_id == user_id)
 
     redacted = dict(item)
     for key in list(redacted.keys()):
-        # 1. Το password_hash δεν επιτρέπεται σε ΚΑΝΕΝΑΝ μέσω chatbot
-        if key in RESTRICTED_FIELDS:
+        # 3. Κρύβουμε το κλειδί εγγραφής μαθήματος από τους φοιτητές
+        if key == "enrollment_key" and role == "student":
+            redacted[key] = "[redacted]"
+
+        elif key in RESTRICTED_FIELDS:
             if role == "admin":
-                # Ο admin βλέπει τα πάντα εκτός από το password_hash
                 if key == "password_hash":
                     redacted[key] = "[redacted]"
             else:
                 redacted[key] = "[redacted]"
 
-        # 2. Προσωπικά πεδία (phone, address, κλπ): επιτρέπονται μόνο στον εαυτό τους ή σε admin/teacher κατά περίπτωση
         elif key in PERSONAL_FIELDS:
             if role != "admin" and not is_self:
                 if role == "teacher" and key == "phone":
-                    # Οι καθηγητές επιτρέπεται να βλέπουν το τηλέφωνο των φοιτητών τους
                     pass
                 else:
                     redacted[key] = "[redacted]"
 
-    # Αναδρομική κλήση για τυχόν εμφωλευμένα λεξκικά ή λίστες μέσα στο αντικείμενο
     for k, v in redacted.items():
         if isinstance(v, dict):
             redacted[k] = _redact_dict(user, v)
         elif isinstance(v, list):
-            redacted[k] = [_redact_dict(user, x) if isinstance(x, dict) else x for x in v]
+            cleaned = [_redact_dict(user, x) if isinstance(x, dict) else x for x in v]
+            redacted[k] = [x for x in cleaned if x is not None]
 
     return redacted
-
 
 def redact(user: dict, tool: str, args: dict, result):
     """
     Κεντρική συνάρτηση redaction. Περιορίζει την προβολή ευαίσθητων πεδίων 
-    στα αποτελέσματα των εργαλείων βάσει ρόλου και ιδιοκτησίας.
+    και φιλτράρει μη εγκεκριμένα αντικείμενα (π.χ. αδημοσίευτους βαθμούς).
     """
     if result is None or isinstance(result, (str, int, float, bool)):
         return result
 
     try:
         if isinstance(result, list):
-            return [_redact_dict(user, item) if isinstance(item, dict) else item for item in result]
+            cleaned = [_redact_dict(user, item) if isinstance(item, dict) else item for item in result]
+            return [x for x in cleaned if x is not None]
         elif isinstance(result, dict):
             return _redact_dict(user, result)
     except Exception:
-        # Fail-safe: αν κάτι πάει στραβά, επιστρέφουμε το αποτέλεσμα ως έχει (το deny έχει γίνει ούτως ή άλλως στην check)
         pass
 
     return result

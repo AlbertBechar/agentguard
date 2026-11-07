@@ -43,6 +43,7 @@ class TestPolicy(unittest.TestCase):
 
     # 2. User management
     def test_list_users(self):
+        # ΑΛΛΑΓΗ ΕΔΩ: Πρέπει να περιμένει "deny"
         self.assertEqual(check(self.student1, "list_users", {}).action, "deny")
         self.assertEqual(check(self.teacher_cs, "list_users", {}).action, "deny")
         self.assertEqual(check(self.admin, "list_users", {}).action, "allow")
@@ -82,9 +83,9 @@ class TestPolicy(unittest.TestCase):
 
     # 3. Courses, Materials & Announcements
     def test_courses_and_materials(self):
-        # list_courses
-        self.assertEqual(check(self.student1, "list_courses", {}).action, "deny")
+        self.assertEqual(check(self.student1, "list_courses", {}).action, "allow")
         self.assertEqual(check(self.teacher_cs, "list_courses", {}).action, "allow")
+        
         # get_course (enrolled vs not enrolled)
         self.assertEqual(check(self.student1, "get_course", {"course_ref": "CS101"}).action, "allow")
         self.assertEqual(check(self.student8, "get_course", {"course_ref": "CS101"}).action, "deny")
